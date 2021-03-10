@@ -31,6 +31,10 @@ function main() {
 		}
 	}).argv
 
+	if(!stashesFile && !stashes) {
+		console.log('You must provide a list of stashes with the --stashes or --stashesFile opton.');
+		return;
+	}
 }
 
 main();

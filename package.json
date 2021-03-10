@@ -9,6 +9,9 @@
   "author": "emostov <32168567+emostov@users.noreply.github.com>",
   "license": "APACHE-2.0",
   "private": false,
+  "scripts": {
+    "lint": "eslint"
+  },
   "devDependencies": {
     "@substrate/dev": "^0.2.0",
     "@types/yargs": "^16.0.0"
