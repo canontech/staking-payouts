@@ -1,0 +1,19 @@
+{
+  "name": "staking-payouts",
+  "version": "0.1.0",
+  "description": "CLI to make staking payout transactions for Substrate FRAME-based chains",
+  "bin" : {
+    "staking-payouts": "build/index.js"
+  },
+  "repository": "https://github.com/emostov/staking-payouts.git",
+  "author": "emostov <32168567+emostov@users.noreply.github.com>",
+  "license": "APACHE-2.0",
+  "private": false,
+  "devDependencies": {
+    "@substrate/dev": "^0.2.0",
+    "@types/yargs": "^16.0.0"
+  },
+  "dependencies": {
+    "yargs": "^16.2.0"
+  }
+}
