@@ -1,6 +1,7 @@
 <div align="center">
   <h1 align="center">WIP @zekemostov/staking-payouts</h1>
   <h4 align="center">💸 CLI to make staking payout transactions for Substrate FRAME-based chains 💸</h4>
+  <h4 align="center">🤖 Automation friendly 🤖</h4>
 
   <p align="center">
     <a href="https://www.npmjs.com/package/@zekemostov/staking-payouts"">
