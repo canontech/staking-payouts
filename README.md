@@ -70,6 +70,25 @@ Options:
   -e, --eraDepth                                           [number] [default: 0]
 ```
 
+## Docker
+
+### Build
+
+```bash
+# The docker files rely on the TS already being transpiled to JS so we first do standard install
+yarn install
+yarn build
+docker build -t payouts .
+```
+
+### Run
+
+```bash
+docker run payouts -w wss://kusama-rpc.polkadot.io \
+  -s GCporqtiw7ybKYUqAftjvUAjZnp3x9gfrWsTy1GrvrGwmYT \
+  -u ./key.example.txt \
+```
+
 ## Debugging
 
 In order to get debug log messages you can set `PAYOUTS_DEBUG=1`.
