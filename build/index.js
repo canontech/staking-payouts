@@ -9,6 +9,7 @@ const fs_1 = __importDefault(require("fs"));
 const yargs_1 = __importDefault(require("yargs"));
 const collectPayouts_1 = require("./collectPayouts");
 const logger_1 = require("./logger");
+const DEBUG = process.env.PAYOUTS_DEBUG;
 async function main() {
     const { ws, stashesFile, stashes, suriFile, eraDepth } = yargs_1.default.options({
         ws: {
@@ -66,6 +67,7 @@ async function main() {
         logger_1.log.error('You must provide a list of stashes with the --stashes or --stashesFile opton.');
         return;
     }
+    DEBUG && logger_1.log.info(`Parsed stash address:\n		${stashesParsed}`);
     const provider = new api_1.WsProvider(ws);
     const api = await api_1.ApiPromise.create({
         provider,

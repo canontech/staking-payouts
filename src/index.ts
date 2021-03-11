@@ -7,6 +7,8 @@ import yargs from 'yargs';
 import { collectPayouts } from './collectPayouts';
 import { log } from './logger';
 
+const DEBUG = process.env.PAYOUTS_DEBUG;
+
 async function main() {
 	const { ws, stashesFile, stashes, suriFile, eraDepth } = yargs.options({
 		ws: {
@@ -70,6 +72,8 @@ async function main() {
 		);
 		return;
 	}
+
+	DEBUG && log.info(`Parsed stash address:\n		${stashesParsed}`);
 
 	const provider = new WsProvider(ws);
 	const api = await ApiPromise.create({
