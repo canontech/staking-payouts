@@ -2,18 +2,16 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.collectPayouts = void 0;
 const api_1 = require("@polkadot/api");
-async function collectPayouts({ url, seed, stashes, sessionSlots, eraDepth, }) {
+const logger_1 = require("./logger");
+const DEBUG = process.env.PAYOUTS_DEBUG;
+async function collectPayouts({ api, suri, stashes, eraDepth, }) {
     var _a, _b;
-    const provider = new api_1.WsProvider(url);
-    const api = await api_1.ApiPromise.create({
-        provider,
-    });
     const [currBlockHash, activeInfo] = await Promise.all([
         api.rpc.chain.getFinalizedHead(),
         api.query.staking.activeEra(),
     ]);
     if (activeInfo.isNone) {
-        console.log('ActiveEra is None, txs could not be completed.');
+        logger_1.log.warn('ActiveEra is None, txs could not be completed.');
         return;
     }
     const currEra = activeInfo.unwrap().index;
@@ -24,18 +22,18 @@ async function collectPayouts({ url, seed, stashes, sessionSlots, eraDepth, }) {
         // Get payouts for a validator
         const _controller = await api.query.staking.bonded(stash);
         if (_controller.isNone) {
-            console.log(`${stash} is not a valid stash address.`);
+            logger_1.log.warn(`${stash} is not a valid stash address.`);
             continue;
         }
         const controller = _controller.unwrap();
         const _ledger = await api.query.staking.ledger(controller);
         if (_ledger.isNone) {
-            console.log(`Staking ledger for ${stash} was not found.`);
+            logger_1.log.warn(`Staking ledger for ${stash} was not found.`);
             continue;
         }
         const ledger = _ledger.unwrap();
         const { claimedRewards } = ledger;
-        console.log(`${stash} claimed rewards: ${claimedRewards.toString()}`);
+        DEBUG && logger_1.log.info(`${stash} claimed rewards: ${claimedRewards.toString()}`);
         const lastEra = (_a = claimedRewards[claimedRewards.length - 1]) === null || _a === void 0 ? void 0 : _a.toNumber();
         if (!lastEra) {
             // This shouldn't happen but here anyways.
@@ -47,7 +45,7 @@ async function collectPayouts({ url, seed, stashes, sessionSlots, eraDepth, }) {
                 continue;
             }
             // yes this is a super sketch calc, but idk how to do it better
-            const aproxEraBlock = currBlockNumber - sessionSlots * e;
+            const aproxEraBlock = currBlockNumber - api.consts.babe.epochDuration.toNumber() * e;
             const hash = await api.rpc.chain.getBlockHash(aproxEraBlock);
             validatorsCache[e] =
                 validatorsCache[e] ||
@@ -65,7 +63,31 @@ async function collectPayouts({ url, seed, stashes, sessionSlots, eraDepth, }) {
             batch.push(payoutStakes);
         }
     }
-    return batch;
+    if (!batch.length) {
+        logger_1.log.info('No txs to send');
+        return;
+    }
+    logger_1.log.info(`Sending batch: ${JSON.stringify(batch, undefined, 2)}`);
+    await signAndSendMaybeBatch(api, batch, suri);
 }
 exports.collectPayouts = collectPayouts;
+async function signAndSendMaybeBatch(api, batch, suri) {
+    var _a;
+    const keyring = new api_1.Keyring();
+    const signingKeys = keyring.addFromUri(suri, { type: 'sr25519' });
+    try {
+        let res;
+        if (batch.length == 1) {
+            res = await ((_a = batch[0]) === null || _a === void 0 ? void 0 : _a.signAndSend(signingKeys));
+        }
+        else if (batch.length > 1) {
+            res = await api.tx.utility.batch(batch).signAndSend(signingKeys);
+        }
+        logger_1.log.info('Node response to tx: ', res);
+    }
+    catch (e) {
+        logger_1.log.error('Tx failed to sign and send');
+        logger_1.log.error(e);
+    }
+}
 //# sourceMappingURL=collectPayouts.js.map

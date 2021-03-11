@@ -1,4 +1,4 @@
-import { ApiPromise, Keyring, WsProvider } from '@polkadot/api';
+import { ApiPromise, Keyring } from '@polkadot/api';
 import { SubmittableExtrinsic } from '@polkadot/api/submittable/types';
 import { ISubmittableResult } from '@polkadot/types/types';
 
@@ -7,23 +7,16 @@ import { log } from './logger';
 const DEBUG = process.env.PAYOUTS_DEBUG;
 
 export async function collectPayouts({
-	url,
-	uri,
+	api,
+	suri,
 	stashes,
-	sessionSlots,
 	eraDepth,
 }: {
-	url: string;
-	uri: string;
+	api: ApiPromise;
+	suri: string;
 	stashes: string[];
-	sessionSlots: number;
 	eraDepth: number;
 }): Promise<void> {
-	const provider = new WsProvider(url);
-	const api = await ApiPromise.create({
-		provider,
-	});
-
 	const [currBlockHash, activeInfo] = await Promise.all([
 		api.rpc.chain.getFinalizedHead(),
 		api.query.staking.activeEra(),
@@ -56,7 +49,10 @@ export async function collectPayouts({
 		const ledger = _ledger.unwrap();
 
 		const { claimedRewards } = ledger;
-		DEBUG && log.info(`${stash} claimed rewards: ${claimedRewards.toString()}`);
+		DEBUG &&
+			log.info(
+				`${stash} claimed rewards for eras:\n		${claimedRewards.toString()}`
+			);
 
 		const lastEra = claimedRewards[claimedRewards.length - 1]?.toNumber();
 		if (!lastEra) {
@@ -70,7 +66,8 @@ export async function collectPayouts({
 			}
 
 			// yes this is a super sketch calc, but idk how to do it better
-			const aproxEraBlock = currBlockNumber - sessionSlots * e;
+			const aproxEraBlock =
+				currBlockNumber - api.consts.babe.epochDuration.toNumber() * e;
 			const hash = await api.rpc.chain.getBlockHash(aproxEraBlock);
 			validatorsCache[e] =
 				validatorsCache[e] ||
@@ -98,16 +95,23 @@ export async function collectPayouts({
 		return;
 	}
 
-	await signAndSendMaybeBatch(api, batch, uri);
+	// log.info(`Sending batch: ${JSON.stringify(batch, undefined, 2)}`);
+	log.info(
+		`Sending tx: \n${batch.map((t) =>
+			JSON.stringify(t.method.toHuman(), undefined, 2)
+		)}`
+	);
+
+	await signAndSendMaybeBatch(api, batch, suri);
 }
 
 async function signAndSendMaybeBatch(
 	api: ApiPromise,
 	batch: SubmittableExtrinsic<'promise', ISubmittableResult>[],
-	uri: string
+	suri: string
 ) {
 	const keyring = new Keyring();
-	const signingKeys = keyring.addFromUri(uri, { type: 'sr25519' });
+	const signingKeys = keyring.addFromUri(suri, { type: 'sr25519' });
 	try {
 		let res;
 		if (batch.length == 1) {

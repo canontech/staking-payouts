@@ -1,7 +1,7 @@
-export declare function collectPayouts({ url, seed, stashes, sessionSlots, eraDepth, }: {
-    url: string;
-    seed: string;
+import { ApiPromise } from '@polkadot/api';
+export declare function collectPayouts({ api, suri, stashes, eraDepth, }: {
+    api: ApiPromise;
+    suri: string;
     stashes: string[];
-    sessionSlots: number;
     eraDepth: number;
 }): Promise<void>;
