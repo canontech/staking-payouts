@@ -22,7 +22,7 @@ Have a large list of validators you want to get payouts for?
 > Put them in a JSON file once and simply run this program each time you want to collect.
 
 Want to automate the payout gather process?
-> Using cronjob, run this program at regular intervals. Its already docker ready!
+> Using something like Systemd timers, run this program at regular intervals. Plus, its already docker ready!
 
 This simple tool allows your creates a batch of payout transactions for a given list of validators.
 
