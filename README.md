@@ -1,5 +1,5 @@
 <div align="center">
-  <h1 align="center">@zekemostov/staking-payouts</h1>
+  <h1 align="center">WIP @zekemostov/staking-payouts</h1>
   <h4 align="center">💸 CLI to make staking payout transactions for Substrate FRAME-based chains 💸</h4>
 
   <p align="center">
@@ -22,19 +22,24 @@
 # NPM
 npm install -G @zekemostov/staking-payouts
 
-# OR
-
 # Github
 git clone https://github.com/emostov/staking-payouts.git
 cd staking-payouts
 yarn install
-npm install -g # Install the binary globally
+yarn build
 ```
 
 ### Run
 
 ```bash
+# NPM
 payouts -w wss://kusama-rpc.polkadot.io \
+  -s GCporqtiw7ybKYUqAftjvUAjZnp3x9gfrWsTy1GrvrGwmYT \
+  -u ./key.txt \
+  -e 8
+
+# Github
+node build/index.js -w wss://kusama-rpc.polkadot.io \
   -s GCporqtiw7ybKYUqAftjvUAjZnp3x9gfrWsTy1GrvrGwmYT \
   -u ./key.txt \
   -e 8
