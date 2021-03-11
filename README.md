@@ -2,6 +2,7 @@
   <h1 align="center">WIP @zekemostov/staking-payouts</h1>
   <h4 align="center">💸 CLI to make staking payout transactions for Substrate FRAME-based chains 💸</h4>
   <h4 align="center">🤖 Automation friendly 🤖</h4>
+  <h4 align="center">🧱⛓💰🚀</h4>
 
   <p align="center">
     <a href="https://www.npmjs.com/package/@zekemostov/staking-payouts"">
@@ -56,7 +57,7 @@ payouts -ws wss://kusama-rpc.polkadot.io \
 
 ## Options
 
-```bash
+```log
 Options:
       --help         Show help                                         [boolean]
       --version      Show version number                               [boolean]
@@ -68,7 +69,8 @@ Options:
                      not using stashesFile.                              [array]
   -u, --suriFile     Path to .txt file containing private key seed.
                                                              [string] [required]
-  -e, --eraDepth                                           [number] [default: 0]
+  -e, --eraDepth     How many eras prior to the last collected era to check for
+                     uncollected payouts.                  [number] [default: 0]
 ```
 
 ## Docker

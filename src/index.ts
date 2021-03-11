@@ -40,7 +40,7 @@ async function main() {
 		},
 		eraDepth: {
 			alias: 'e',
-			decription:
+			description:
 				'How many eras prior to the last collected era to check for uncollected payouts.',
 			number: true,
 			demandOption: false,

@@ -1,5 +1,6 @@
 key.txt
 stashes.json
+/build
 
 # Logs
 logs
