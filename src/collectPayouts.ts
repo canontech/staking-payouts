@@ -119,7 +119,7 @@ async function signAndSendMaybeBatch(
 		} else if (batch.length > 1) {
 			res = await api.tx.utility.batch(batch).signAndSend(signingKeys);
 		}
-		log.info('Node response to tx: ', res);
+		log.info(`Node response to tx:\n		${res}`);
 	} catch (e) {
 		log.error('Tx failed to sign and send');
 		log.error(e);
