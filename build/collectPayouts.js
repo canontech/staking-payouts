@@ -4,8 +4,13 @@ exports.collectPayouts = void 0;
 const api_1 = require("@polkadot/api");
 const logger_1 = require("./logger");
 const DEBUG = process.env.PAYOUTS_DEBUG;
+/**
+ *
+ * @param param0
+ * @returns Promise<void>
+ */
 async function collectPayouts({ api, suri, stashes, eraDepth, }) {
-    var _a, _b;
+    var _a, _b, _c;
     const [currBlockHash, activeInfo] = await Promise.all([
         api.rpc.chain.getFinalizedHead(),
         api.query.staking.activeEra(),
@@ -45,12 +50,13 @@ async function collectPayouts({ api, suri, stashes, eraDepth, }) {
             if (claimedRewards.includes(e)) {
                 continue;
             }
-            // yes this is a super sketch calc, but idk how to do it better
-            const aproxEraBlock = currBlockNumber - api.consts.babe.epochDuration.toNumber() * e;
-            const hash = await api.rpc.chain.getBlockHash(aproxEraBlock);
-            validatorsCache[e] =
-                validatorsCache[e] ||
-                    (await api.query.session.validators.at(hash)).map((valId) => valId.toString());
+            await maybeUpdateValidators({
+                api,
+                checkEra: e,
+                currBlockNumber,
+                currEra: currEra.toNumber(),
+                validatorsCache,
+            });
             // Check they nominated that era
             if ((_b = validatorsCache[e]) === null || _b === void 0 ? void 0 : _b.includes(stash)) {
                 const payoutStakes = api.tx.staking.payoutStakers(stash, e);
@@ -59,9 +65,18 @@ async function collectPayouts({ api, suri, stashes, eraDepth, }) {
         }
         // Check from the last collected era up until current
         for (let e = lastEra + 1; e < currEra.toNumber(); e += 1) {
-            // Get payouts for each era where payouts have not been claimed
-            const payoutStakes = api.tx.staking.payoutStakers(stash, e);
-            batch.push(payoutStakes);
+            await maybeUpdateValidators({
+                api,
+                checkEra: e,
+                currBlockNumber,
+                currEra: currEra.toNumber(),
+                validatorsCache,
+            });
+            if ((_c = validatorsCache[e]) === null || _c === void 0 ? void 0 : _c.includes(stash)) {
+                // Get payouts for each era where payouts have not been claimed
+                const payoutStakes = api.tx.staking.payoutStakers(stash, e);
+                batch.push(payoutStakes);
+            }
         }
     }
     if (!batch.length) {
@@ -73,6 +88,30 @@ async function collectPayouts({ api, suri, stashes, eraDepth, }) {
     await signAndSendMaybeBatch(api, batch, suri);
 }
 exports.collectPayouts = collectPayouts;
+/**
+ * Get the validator set for a particular era, and update the `validatorsCache`
+ * with that set. Does not do computation if validator set has already been fetched
+ * for that era.
+ *
+ * N.B. Mutates validatorsCache in place
+ *
+ * @param param0
+ * @returns Promise<void>
+ */
+async function maybeUpdateValidators({ api, currEra, checkEra, currBlockNumber, validatorsCache, }) {
+    if (checkEra in validatorsCache) {
+        // The validator set for the era has already been fetched
+        return;
+    }
+    // We calculate a block in the era to get the validator set.
+    // This calculation is imperfect at best due to the fact a decent number of slots
+    // have no block authored.
+    const eraDiff = currEra - checkEra;
+    const slotsSinceEra = api.consts.babe.epochDuration.toNumber() * eraDiff;
+    const aproxEraBlock = currBlockNumber - slotsSinceEra;
+    const hash = await api.rpc.chain.getBlockHash(aproxEraBlock);
+    validatorsCache[checkEra] = (await api.query.session.validators.at(hash)).map((valId) => valId.toString());
+}
 async function signAndSendMaybeBatch(api, batch, suri) {
     var _a;
     const keyring = new api_1.Keyring();
@@ -85,7 +124,7 @@ async function signAndSendMaybeBatch(api, batch, suri) {
         else if (batch.length > 1) {
             res = await api.tx.utility.batch(batch).signAndSend(signingKeys);
         }
-        logger_1.log.info('Node response to tx: ', res);
+        logger_1.log.info(`Node response to tx:\n		${res}`);
     }
     catch (e) {
         logger_1.log.error('Tx failed to sign and send');

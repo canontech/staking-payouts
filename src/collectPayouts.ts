@@ -6,6 +6,13 @@ import { log } from './logger';
 
 const DEBUG = process.env.PAYOUTS_DEBUG;
 
+type ValidatorsCache = Record<number, string[]>;
+
+/**
+ *
+ * @param param0
+ * @returns Promise<void>
+ */
 export async function collectPayouts({
 	api,
 	suri,
@@ -30,7 +37,7 @@ export async function collectPayouts({
 		await api.rpc.chain.getHeader(currBlockHash)
 	).number.toNumber();
 
-	const validatorsCache: Record<number, string[]> = {};
+	const validatorsCache: ValidatorsCache = {};
 	const batch = [];
 	for (const stash of stashes) {
 		// Get payouts for a validator
@@ -65,15 +72,13 @@ export async function collectPayouts({
 				continue;
 			}
 
-			// yes this is a super sketch calc, but idk how to do it better
-			const aproxEraBlock =
-				currBlockNumber - api.consts.babe.epochDuration.toNumber() * e;
-			const hash = await api.rpc.chain.getBlockHash(aproxEraBlock);
-			validatorsCache[e] =
-				validatorsCache[e] ||
-				(await api.query.session.validators.at(hash)).map((valId) =>
-					valId.toString()
-				);
+			await maybeUpdateValidators({
+				api,
+				checkEra: e,
+				currBlockNumber,
+				currEra: currEra.toNumber(),
+				validatorsCache,
+			});
 
 			// Check they nominated that era
 			if (validatorsCache[e]?.includes(stash)) {
@@ -84,9 +89,19 @@ export async function collectPayouts({
 
 		// Check from the last collected era up until current
 		for (let e = lastEra + 1; e < currEra.toNumber(); e += 1) {
-			// Get payouts for each era where payouts have not been claimed
-			const payoutStakes = api.tx.staking.payoutStakers(stash, e);
-			batch.push(payoutStakes);
+			await maybeUpdateValidators({
+				api,
+				checkEra: e,
+				currBlockNumber,
+				currEra: currEra.toNumber(),
+				validatorsCache,
+			});
+
+			if (validatorsCache[e]?.includes(stash)) {
+				// Get payouts for each era where payouts have not been claimed
+				const payoutStakes = api.tx.staking.payoutStakers(stash, e);
+				batch.push(payoutStakes);
+			}
 		}
 	}
 
@@ -103,6 +118,47 @@ export async function collectPayouts({
 	);
 
 	await signAndSendMaybeBatch(api, batch, suri);
+}
+
+/**
+ * Get the validator set for a particular era, and update the `validatorsCache`
+ * with that set. Does not do computation if validator set has already been fetched
+ * for that era.
+ *
+ * N.B. Mutates validatorsCache in place
+ *
+ * @param param0
+ * @returns Promise<void>
+ */
+async function maybeUpdateValidators({
+	api,
+	currEra,
+	checkEra,
+	currBlockNumber,
+	validatorsCache,
+}: {
+	api: ApiPromise;
+	currEra: number;
+	checkEra: number;
+	currBlockNumber: number;
+	validatorsCache: ValidatorsCache;
+}) {
+	if (checkEra in validatorsCache) {
+		// The validator set for the era has already been fetched
+		return;
+	}
+
+	// We calculate a block in the era to get the validator set.
+	// This calculation is imperfect at best due to the fact a decent number of slots
+	// have no block authored.
+	const eraDiff = currEra - checkEra;
+	const slotsSinceEra = api.consts.babe.epochDuration.toNumber() * eraDiff;
+	const aproxEraBlock = currBlockNumber - slotsSinceEra;
+
+	const hash = await api.rpc.chain.getBlockHash(aproxEraBlock);
+	validatorsCache[checkEra] = (
+		await api.query.session.validators.at(hash)
+	).map((valId) => valId.toString());
 }
 
 async function signAndSendMaybeBatch(
