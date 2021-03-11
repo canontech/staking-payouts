@@ -45,13 +45,29 @@ node build/index.js -w wss://kusama-rpc.polkadot.io \
   -e 8
 ```
 
-Note: you can also specify a json file with an array of validatory stash addresses:
+**Note:** you can also specify a json file with an array of validator stash addresses
 
 ```bash
-node build/index.js -w wss://kusama-rpc.polkadot.io \
-  -S stashes.example.json \
-  -u ./key.example.txt \
-  -e 8
+payouts -ws wss://kusama-rpc.polkadot.io \
+  -stashesFile stashes.example.json \
+  -suriFile ./key.example.txt \
+```
+
+## Options
+
+```bash
+Options:
+      --help         Show help                                         [boolean]
+      --version      Show version number                               [boolean]
+  -w, --ws           The API endpoint to connect to, e.g.
+                     wss://kusama-rpc.polkadot.io            [string] [required]
+  -S, --stashesFile  Path to .json file containing an array of the stash
+                     addresses to call payouts for.                     [string]
+  -s, --stashes      Array of stash addresses to call payouts for. Required if
+                     not using stashesFile.                              [array]
+  -u, --suriFile     Path to .txt file containing private key seed.
+                                                             [string] [required]
+  -e, --eraDepth                                           [number] [default: 0]
 ```
 
 ## Debugging
