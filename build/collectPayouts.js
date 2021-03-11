@@ -33,7 +33,8 @@ async function collectPayouts({ api, suri, stashes, eraDepth, }) {
         }
         const ledger = _ledger.unwrap();
         const { claimedRewards } = ledger;
-        DEBUG && logger_1.log.info(`${stash} claimed rewards: ${claimedRewards.toString()}`);
+        DEBUG &&
+            logger_1.log.info(`${stash} claimed rewards for eras:\n		${claimedRewards.toString()}`);
         const lastEra = (_a = claimedRewards[claimedRewards.length - 1]) === null || _a === void 0 ? void 0 : _a.toNumber();
         if (!lastEra) {
             // This shouldn't happen but here anyways.
@@ -67,7 +68,8 @@ async function collectPayouts({ api, suri, stashes, eraDepth, }) {
         logger_1.log.info('No txs to send');
         return;
     }
-    logger_1.log.info(`Sending batch: ${JSON.stringify(batch, undefined, 2)}`);
+    // log.info(`Sending batch: ${JSON.stringify(batch, undefined, 2)}`);
+    logger_1.log.info(`Sending tx: \n${batch.map((t) => JSON.stringify(t.method.toHuman(), undefined, 2))}`);
     await signAndSendMaybeBatch(api, batch, suri);
 }
 exports.collectPayouts = collectPayouts;

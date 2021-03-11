@@ -9,7 +9,6 @@ const fs_1 = __importDefault(require("fs"));
 const yargs_1 = __importDefault(require("yargs"));
 const collectPayouts_1 = require("./collectPayouts");
 const logger_1 = require("./logger");
-const DEBUG = process.env.PAYOUTS_DEBUG;
 async function main() {
     const { ws, stashesFile, stashes, suriFile, eraDepth } = yargs_1.default.options({
         ws: {
@@ -44,7 +43,6 @@ async function main() {
             default: 0,
         },
     }).argv;
-    DEBUG && logger_1.log.info('suriFile: ', suriFile);
     const suriData = fs_1.default.readFileSync(suriFile, 'utf-8');
     const suri = suriData.split(/|r?\n/)[0];
     if (!suri) {
@@ -56,8 +54,9 @@ async function main() {
         const stashesData = fs_1.default.readFileSync(stashesFile);
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         stashesParsed = JSON.parse(stashesData);
-        if (Array.isArray(stashesParsed)) {
+        if (!Array.isArray(stashesParsed)) {
             console.error('The stash addresses must be in a JSON file as an array.');
+            return;
         }
     }
     else if (Array.isArray(stashes)) {

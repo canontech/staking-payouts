@@ -7,8 +7,6 @@ import yargs from 'yargs';
 import { collectPayouts } from './collectPayouts';
 import { log } from './logger';
 
-const DEBUG = process.env.PAYOUTS_DEBUG;
-
 async function main() {
 	const { ws, stashesFile, stashes, suriFile, eraDepth } = yargs.options({
 		ws: {
@@ -48,7 +46,6 @@ async function main() {
 		},
 	}).argv;
 
-	DEBUG && log.info('suriFile: ', suriFile);
 	const suriData = fs.readFileSync(suriFile, 'utf-8');
 	const suri = suriData.split(/|r?\n/)[0];
 	if (!suri) {
@@ -61,8 +58,9 @@ async function main() {
 		const stashesData = fs.readFileSync(stashesFile);
 		// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
 		stashesParsed = JSON.parse((stashesData as unknown) as string);
-		if (Array.isArray(stashesParsed)) {
+		if (!Array.isArray(stashesParsed)) {
 			console.error('The stash addresses must be in a JSON file as an array.');
+			return;
 		}
 	} else if (Array.isArray(stashes)) {
 		stashesParsed = stashes as string[];

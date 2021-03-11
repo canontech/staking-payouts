@@ -35,13 +35,22 @@ yarn build
 # NPM
 payouts -w wss://kusama-rpc.polkadot.io \
   -s GCporqtiw7ybKYUqAftjvUAjZnp3x9gfrWsTy1GrvrGwmYT \
-  -u ./key.txt \
+  -u ./key.example.txt \
   -e 8
 
 # Github
 node build/index.js -w wss://kusama-rpc.polkadot.io \
   -s GCporqtiw7ybKYUqAftjvUAjZnp3x9gfrWsTy1GrvrGwmYT \
-  -u ./key.txt \
+  -u ./key.example.txt \
+  -e 8
+```
+
+Note: you can also specify a json file with an array of validatory stash addresses:
+
+```bash
+node build/index.js -w wss://kusama-rpc.polkadot.io \
+  -S stashes.example.json \
+  -u ./key.example.txt \
   -e 8
 ```
 
