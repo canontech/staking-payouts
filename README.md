@@ -112,9 +112,10 @@ In order to get debug log messages you can set `PAYOUTS_DEBUG=1`.
 
 The chain must at least use the `Babe` and `Staking` pallets.
 
-## Want to support this project?
+## Support this project
 
-Nominate me!
-
-- **polkadot**: 13zBFyK97dg4hWjXwEpigeVdu69sHa4fc8JYegpB369PAafq
-- **kusama**: GCporqtiw7ybKYUqAftjvUAjZnp3x9gfrWsTy1GrvrGwmYT
+- 👩‍💻 Contribute to the docs or code
+- ⭐️ Star the github repo
+- 🗳 Nominate me!
+  - **polkadot**: 13zBFyK97dg4hWjXwEpigeVdu69sHa4fc8JYegpB369PAafq
+  - **kusama**: GCporqtiw7ybKYUqAftjvUAjZnp3x9gfrWsTy1GrvrGwmYT
