@@ -110,7 +110,6 @@ export async function collectPayouts({
 		return;
 	}
 
-	// log.info(`Sending batch: ${JSON.stringify(batch, undefined, 2)}`);
 	log.info(
 		`Sending tx: \n${batch.map((t) =>
 			JSON.stringify(t.method.toHuman(), undefined, 2)
