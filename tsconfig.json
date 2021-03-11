@@ -1,4 +1,6 @@
 {
   "extends": "@substrate/dev/config/tsconfig.json",
-  "outDir": "build"
+  "compilerOptions": {
+    "outDir": "./build",
+  }
 }
