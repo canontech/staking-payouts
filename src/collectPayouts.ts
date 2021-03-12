@@ -99,9 +99,13 @@ async function isValidatingInEra(
 	stash: string,
 	eraToCheck: number
 ): Promise<boolean> {
-	const _exposure = await api.query.staking.erasStakers(eraToCheck, stash);
-	// If their total exposure is greater than 0 they are validating in the era.
-	return _exposure.total.toBn().gtn(0);
+	try {
+		const _exposure = await api.query.staking.erasStakers(eraToCheck, stash);
+		// If their total exposure is greater than 0 they are validating in the era.
+		return _exposure.total.toBn().gtn(0);
+	} catch {
+		return false;
+	}
 }
 
 async function signAndSendMaybeBatch(
