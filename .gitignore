@@ -1,11 +1,10 @@
-key.txt
-key.ksm.txt
-key.dot.txt
+*.txt
+!key.example.txt
 stashes.kusama.json
-stashes.polkadot.json
-stashes.json
+!stashes.example.json
+stashes.[a-z]*.json
 /build
-build/
+
 
 # Logs
 logs
