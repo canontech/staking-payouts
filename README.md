@@ -26,7 +26,7 @@ Want to automate the payout gather process?
 
 This simple tool allows your creates a batch of payout transactions for a given list of validators.
 
-For each validator it finds the last era where they collected payouts and then creates payout transactions for the eras that have ocurred since. If you think there are un-paid out eras prior to the last payed out, you can also specify a `eraDepth`; the tool will check `lastPayedOutEra` through `lastPayedOutEra - eraDepth` to see if there are any eras where payouts have not been collected.
+For each validator it finds the last era where they collected payouts and then creates payout transactions for the eras that have ocurred since and for which they where in the validator set. If you think there are un-paid out eras prior to the last payed out, you can also specify a `eraDepth`; the tool will check `lastPayedOutEra` through `lastPayedOutEra - eraDepth` to see if there are any eras where they where in the validator set and payouts have not been collected.
 
 ## Getting started
 
