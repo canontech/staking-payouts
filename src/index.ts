@@ -48,8 +48,17 @@ async function main() {
 		},
 	}).argv;
 
-	const suriData = fs.readFileSync(suriFile, 'utf-8');
-	const suri = suriData.split(/|r?\n/)[0];
+
+	DEBUG && log.info(`suriFile: ${suriFile}`);
+	let suriData;
+	try {
+		suriData = fs.readFileSync(suriFile, 'utf-8');
+	} catch (e) {
+		log.error('Suri file could not be opened');
+		log.error(e);
+		return;
+	}
+	const suri = suriData.split(/\r?\n/)[0];
 	if (!suri) {
 		log.error('No suri could be read in from file.');
 		return;
@@ -57,7 +66,13 @@ async function main() {
 
 	let stashesParsed: string[];
 	if (stashesFile) {
-		const stashesData = fs.readFileSync(stashesFile);
+		let stashesData;
+		try {
+			stashesData = fs.readFileSync(stashesFile);
+		} catch (e) {
+			log.error('Stashes file could not be opened');
+			log.error(e);
+		}
 		// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
 		stashesParsed = JSON.parse((stashesData as unknown) as string);
 		if (!Array.isArray(stashesParsed)) {
@@ -72,7 +87,6 @@ async function main() {
 		);
 		return;
 	}
-
 	DEBUG && log.info(`Parsed stash address:\n		${stashesParsed}`);
 
 	const provider = new WsProvider(ws);

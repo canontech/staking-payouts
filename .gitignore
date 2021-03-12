@@ -1,4 +1,8 @@
 key.txt
+key.ksm.txt
+key.dot.txt
+stashes.kusama.json
+stashes.polkadot.json
 stashes.json
 /build
 build/

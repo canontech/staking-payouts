@@ -48,13 +48,13 @@ yarn build
 ```bash
 # NPM
 payouts -w wss://kusama-rpc.polkadot.io \
-  -s GCporqtiw7ybKYUqAftjvUAjZnp3x9gfrWsTy1GrvrGwmYT \
+  -s 15Jbynf3EcRqdHV1K14LXYh7PQFTbp5wiXfrc4kbMReR9KxA \
   -u ./key.example.txt \
   -e 8
 
 # Github
 node build/index.js -w wss://kusama-rpc.polkadot.io \
-  -s GCporqtiw7ybKYUqAftjvUAjZnp3x9gfrWsTy1GrvrGwmYT \
+  -s 15Jbynf3EcRqdHV1K14LXYh7PQFTbp5wiXfrc4kbMReR9KxA \
   -u ./key.example.txt \
   -e 8
 ```
@@ -63,8 +63,8 @@ node build/index.js -w wss://kusama-rpc.polkadot.io \
 
 ```bash
 payouts -ws wss://kusama-rpc.polkadot.io \
-  -stashesFile stashes.example.json \
-  -suriFile ./key.example.txt \
+  --stashesFile ./stashes.example.json \
+  --suriFile ./key.example.txt
 ```
 
 ## Options

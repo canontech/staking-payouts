@@ -1,6 +1,7 @@
 import { ApiPromise, Keyring } from '@polkadot/api';
 import { SubmittableExtrinsic } from '@polkadot/api/submittable/types';
 import { ISubmittableResult } from '@polkadot/types/types';
+import { cryptoWaitReady } from '@polkadot/util-crypto';
 
 import { log } from './logger';
 
@@ -47,10 +48,6 @@ export async function collectPayouts({
 		const ledger = _ledger.unwrap();
 
 		const { claimedRewards } = ledger;
-		DEBUG &&
-			log.info(
-				`${stash} claimed rewards for eras:\n		${claimedRewards.toString()}`
-			);
 
 		const lastEra = claimedRewards[claimedRewards.length - 1]?.toNumber();
 		if (!lastEra) {
@@ -113,8 +110,17 @@ async function signAndSendMaybeBatch(
 	batch: SubmittableExtrinsic<'promise', ISubmittableResult>[],
 	suri: string
 ) {
+	await cryptoWaitReady();
 	const keyring = new Keyring();
-	const signingKeys = keyring.addFromUri(suri, { type: 'sr25519' });
+	const signingKeys = keyring.createFromUri(suri, {}, 'sr25519');
+	DEBUG &&
+		log.info(
+			`Sender address: ${keyring.encodeAddress(
+				signingKeys.address,
+				api.registry.chainSS58
+			)}`
+		);
+
 	try {
 		let res;
 		if (batch.length == 1) {
