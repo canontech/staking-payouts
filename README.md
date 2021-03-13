@@ -1,5 +1,5 @@
 <div align="center">
-  <h1 align="center">WIP @zekemostov/staking-payouts</h1>
+  <h1 align="center">@zekemostov/staking-payouts</h1>
   <h4 align="center">💸 CLI to make staking payout transactions for Substrate FRAME-based chains 💸</h4>
   <h4 align="center">🤖 Automation friendly 🤖</h4>
   <h4 align="center">🧱⛓💰🚀</h4>
@@ -16,17 +16,19 @@
 
 <br /><br />
 
-### Motivation
+### About
+
+This simple tool allows your creates a batch of payout transactions for a given list of validators.
+
+For each validator it finds the last era where they collected payouts and then creates payout transactions for the eras that have ocurred since and for which they where in the validator set. If you think there are un-paid out eras prior to the last payed out, you can also specify a `eraDepth`; the tool will check `lastPayedOutEra` through `lastPayedOutEra - eraDepth` to see if there are any eras where they where in the validator set and payouts have not been collected.
+
+#### Motivation
 
 Have a large list of validators you want to get payouts for?
 > Put them in a JSON file once and simply run this program each time you want to collect.
 
 Want to automate the payout gather process?
 > Using something like Systemd timers, run this program at regular intervals. Plus, its already docker ready!
-
-This simple tool allows your creates a batch of payout transactions for a given list of validators.
-
-For each validator it finds the last era where they collected payouts and then creates payout transactions for the eras that have ocurred since and for which they where in the validator set. If you think there are un-paid out eras prior to the last payed out, you can also specify a `eraDepth`; the tool will check `lastPayedOutEra` through `lastPayedOutEra - eraDepth` to see if there are any eras where they where in the validator set and payouts have not been collected.
 
 ## Getting started
 
