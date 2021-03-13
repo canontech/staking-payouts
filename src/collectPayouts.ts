@@ -7,11 +7,6 @@ import { log } from './logger';
 
 const DEBUG = process.env.PAYOUTS_DEBUG;
 
-/**
- *
- * @param param0
- * @returns Promise<void>
- */
 export async function collectPayouts({
 	api,
 	suri,
