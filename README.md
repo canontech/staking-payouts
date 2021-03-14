@@ -41,8 +41,8 @@ npm install -G @zekemostov/staking-payouts
 # Github
 git clone https://github.com/emostov/staking-payouts.git
 cd staking-payouts
-yarn install
-yarn build
+yarn run install
+yarn run build
 ```
 
 ### Run
