@@ -7,8 +7,19 @@
   },
   "repository": "https://github.com/emostov/staking-payouts.git",
   "author": "emostov <32168567+emostov@users.noreply.github.com>",
+  "bugs": {
+    "url": "https://github.com/emostov/staking-payouts/issues"
+  },
+  "files": [
+    "build"
+  ],
+  "homepage": "https://github.com/emostov/staking-payouts#readme",
   "license": "APACHE-2.0",
   "private": false,
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
   "scripts": {
     "lint": "eslint",
     "build": "tsc -p tsconfig.json"
