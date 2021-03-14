@@ -76,7 +76,7 @@ async function main() {
 		// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
 		stashesParsed = JSON.parse((stashesData as unknown) as string);
 		if (!Array.isArray(stashesParsed)) {
-			console.error('The stash addresses must be in a JSON file as an array.');
+			log.error('The stash addresses must be in a JSON file as an array.');
 			return;
 		}
 	} else if (Array.isArray(stashes)) {
@@ -103,7 +103,7 @@ async function main() {
 }
 
 main()
-	.catch(console.log)
+	.catch(log.error)
 	.finally(() => {
 		log.info('Exiting ...');
 		process.exit(1);
