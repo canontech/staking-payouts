@@ -800,16 +800,16 @@
   dependencies:
     "@sinonjs/commons" "^1.7.0"
 
-"@substrate/dev@^0.2.0":
-  version "0.2.0"
-  resolved "https://registry.yarnpkg.com/@substrate/dev/-/dev-0.2.0.tgz#1eb0415b68ce12ee1771bf428931801a15f40a5f"
-  integrity sha512-50EHCe7HV728FFLcZDS+AvC1NE15DQBk7vdbXmsjukCAnLjoJcPVns/JT0mNycd9nMtryZyyeNVkgpB0SbUHGQ==
+"@substrate/dev@^0.3.0":
+  version "0.3.0"
+  resolved "https://registry.yarnpkg.com/@substrate/dev/-/dev-0.3.0.tgz#8b11b4d89a5c1e66a64d76f03aed35d921d1c2cd"
+  integrity sha512-R5AcUEqC7iM8N44AxZzf3INMtiXV425m8t3e5yB6A6gVuAqA+gP1BbqSHuHPdkoUkGhaXAMp0kwRMD8jM01GBg==
   dependencies:
     "@babel/plugin-transform-modules-commonjs" "^7.13.8"
     "@types/jest" "^26.0.20"
     "@typescript-eslint/eslint-plugin" "^4.17.0"
     "@typescript-eslint/parser" "^4.17.0"
-    eslint "^7.21.0"
+    eslint "^7.22.0"
     eslint-config-prettier "^8.1.0"
     eslint-plugin-prettier "^3.3.1"
     eslint-plugin-simple-import-sort "^7.0.0"
@@ -1964,7 +1964,7 @@ eslint-visitor-keys@^2.0.0:
   resolved "https://registry.yarnpkg.com/eslint-visitor-keys/-/eslint-visitor-keys-2.0.0.tgz#21fdc8fbcd9c795cc0321f0563702095751511a8"
   integrity sha512-QudtT6av5WXels9WjIM7qz1XD1cWGvX4gGXvp/zBn9nXG02D0utdU3Em2m/QjTnrsk6bBjmCygl3rmj118msQQ==
 
-eslint@^7.21.0:
+eslint@^7.22.0:
   version "7.22.0"
   resolved "https://registry.yarnpkg.com/eslint/-/eslint-7.22.0.tgz#07ecc61052fec63661a2cab6bd507127c07adc6f"
   integrity sha512-3VawOtjSJUQiiqac8MQc+w457iGLfuNGLFn8JmF051tTKbh5/x/0vlcEj8OgDCaw7Ysa2Jn8paGshV7x2abKXg==
