@@ -92,9 +92,9 @@ async function isValidatingInEra(
 	eraToCheck: number
 ): Promise<boolean> {
 	try {
-		const _exposure = await api.query.staking.erasStakers(eraToCheck, stash);
+		const exposure = await api.query.staking.erasStakers(eraToCheck, stash);
 		// If their total exposure is greater than 0 they are validating in the era.
-		return _exposure.total.toBn().gtn(0);
+		return exposure.total.toBn().gtn(0);
 	} catch {
 		return false;
 	}

@@ -103,7 +103,7 @@ docker build -t payouts .
 ```bash
 docker run payouts -w wss://kusama-rpc.polkadot.io \
   -s GCporqtiw7ybKYUqAftjvUAjZnp3x9gfrWsTy1GrvrGwmYT \
-  -u ./key.example.txt \
+  -u ./key.example.txt
 ```
 
 ## Debugging
