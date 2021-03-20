@@ -5,6 +5,7 @@ import fs from 'fs';
 import yargs from 'yargs';
 
 import { collectPayouts } from './collectPayouts';
+import { isValidSeed } from './isValidSeed';
 import { log } from './logger';
 
 const DEBUG = process.env.PAYOUTS_DEBUG;
@@ -48,7 +49,6 @@ async function main() {
 		},
 	}).argv;
 
-
 	DEBUG && log.info(`suriFile: ${suriFile}`);
 	let suriData;
 	try {
@@ -61,6 +61,10 @@ async function main() {
 	const suri = suriData.split(/\r?\n/)[0];
 	if (!suri) {
 		log.error('No suri could be read in from file.');
+		return;
+	}
+	if (!isValidSeed(suri)) {
+		log.error('Suri is invalid');
 		return;
 	}
 
