@@ -16,6 +16,18 @@
 
 <br /><br />
 
+### Table of contents
+
+- [About](#about)
+- [Usage notes](#usage-notes)
+- [Getting started](#getting-started)
+- [Options](#options)
+- [Docker](#docker)
+- [Debugging](#debugging)
+- [Questions, feature request, or bug reports](#questions-feature-request-or-bug-reports)
+- [Substrate chain assumptions](#substrate-chain-assumptions)
+- [Support this project](#support-this-project)
+
 ### About
 
 This simple tool enables you to create a batch of payout transactions for a given list of validators - automating the process of gathering unclaimed rewards.
@@ -29,6 +41,18 @@ Have a large list of validators you want to get payouts for?
 
 Want to automate the payout gather process?
 > Using something like systemd.timers or cron, run this program at regular intervals. Plus, its already docker ready!
+
+### Usage Notes
+
+#### Perquisites
+
+- node.js > 12
+
+#### Updating
+
+Substrate chains use a non self describing codec, meaning clients that communicate with the chain need type definitions to decode the data. Some runtime upgrades require new type definitions which may affect this CLI.
+
+Thus, it is recommended to upgrade this CLI to the latest version prior to runtime upgrade in order to ensure it will always have the latest type definitions from polkadot-js/api.
 
 ## Getting started
 
@@ -61,7 +85,7 @@ node build/index.js -w wss://kusama-rpc.polkadot.io \
   -e 8
 ```
 
-**Note:** you can also specify a json file with an array of validator stash addresses
+**NOTE:** you can also specify a json file with an array of validator stash addresses:
 
 ```bash
 payouts -ws wss://kusama-rpc.polkadot.io \
@@ -92,7 +116,8 @@ Options:
 ### Build
 
 ```bash
-# The docker files rely on the TS already being transpiled to JS so we first do standard install
+# The docker files rely on the TS already being transpiled to JS,
+# so we first do standard install.
 yarn install
 yarn build
 docker build -t payouts .
@@ -110,9 +135,13 @@ docker run payouts -w wss://kusama-rpc.polkadot.io \
 
 In order to get debug log messages you can set `PAYOUTS_DEBUG=1`.
 
+## Questions, feature request, or bug reports
+
+If you have a question, feature request or believe you found a bug please open up a issue in the github repo. All feedback is appreciated.
+
 ## Substrate chain assumptions
 
-The chain must at least use the `Babe` and `Staking` pallets.
+The chain must be `FRAME`-based and use the substrate staking pallet.
 
 ## Support this project
 
