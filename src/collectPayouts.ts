@@ -18,29 +18,29 @@ export async function collectPayouts({
 	stashes: string[];
 	eraDepth: number;
 }): Promise<void> {
-	const _activeInfo = await api.query.staking.activeEra();
-	if (_activeInfo.isNone) {
+	const activeInfoOpt = await api.query.staking.activeEra();
+	if (activeInfoOpt.isNone) {
 		log.warn('ActiveEra is None, txs could not be completed.');
 		return;
 	}
-	const currEra = _activeInfo.unwrap().index.toNumber();
+	const currEra = activeInfoOpt.unwrap().index.toNumber();
 
 	const batch = [];
 	for (const stash of stashes) {
 		// Get payouts for a validator
-		const _controller = await api.query.staking.bonded(stash);
-		if (_controller.isNone) {
+		const controllerOpt = await api.query.staking.bonded(stash);
+		if (controllerOpt.isNone) {
 			log.warn(`${stash} is not a valid stash address.`);
 			continue;
 		}
-		const controller = _controller.unwrap();
+		const controller = controllerOpt.unwrap();
 
-		const _ledger = await api.query.staking.ledger(controller);
-		if (_ledger.isNone) {
+		const ledgerOpt = await api.query.staking.ledger(controller);
+		if (ledgerOpt.isNone) {
 			log.warn(`Staking ledger for ${stash} was not found.`);
 			continue;
 		}
-		const ledger = _ledger.unwrap();
+		const ledger = ledgerOpt.unwrap();
 
 		const { claimedRewards } = ledger;
 
