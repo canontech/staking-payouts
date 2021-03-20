@@ -7,6 +7,22 @@ import { log } from './logger';
 
 const DEBUG = process.env.PAYOUTS_DEBUG;
 
+/**
+ * Gather uncollected payouts for each validator, checking each era since there
+ * last claimed payout, and creating a `batch` tx with `payoutStakers` txs.
+ *
+ * Additionally check `eraDepth` number of eras prior to the era of the last
+ * claimed payout. This can help in the (potentially malicious) scenario where
+ * someone may have claimed payouts for a recent era, but left some prior eras
+ * with unclaimed rewards.
+ *
+ * If there are no payouts does not create tx.
+ * If there is only one tx, it optimizes and just sends that lone tx.
+ *
+ *
+ * @param collectionOptions
+ * @returns Promise<void>
+ */
 export async function collectPayouts({
 	api,
 	suri,
@@ -123,7 +139,7 @@ async function signAndSendMaybeBatch(
 		} else if (batch.length > 1) {
 			res = await api.tx.utility.batch(batch).signAndSend(signingKeys);
 		}
-		log.info(`Node response to tx:\n		${res}`);
+		log.info(`Node response to tx: ${res}`);
 	} catch (e) {
 		log.error('Tx failed to sign and send');
 		log.error(e);
