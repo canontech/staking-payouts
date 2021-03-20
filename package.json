@@ -21,6 +21,7 @@
     "registry": "https://registry.npmjs.org"
   },
   "scripts": {
+    "deploy": "rm -rf build/ && yarn build && yarn publish",
     "lint": "eslint",
     "build": "tsc -p tsconfig.json"
   },
