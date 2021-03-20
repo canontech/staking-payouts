@@ -25,7 +25,7 @@
     "build": "tsc -p tsconfig.json"
   },
   "devDependencies": {
-    "@substrate/dev": "^0.2.0",
+    "@substrate/dev": "^0.3.0",
     "@types/node": "^14.14.34",
     "@types/yargs": "^16.0.0"
   },
