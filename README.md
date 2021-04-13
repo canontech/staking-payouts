@@ -149,4 +149,6 @@ The chain must be `FRAME`-based and use the substrate staking pallet.
 - ⭐️ Star the github repo
 - 🗳 Nominate (or tip) me!
   - **polkadot**: 13zBFyK97dg4hWjXwEpigeVdu69sHa4fc8JYegpB369PAafq
-  - **kusama**: GCporqtiw7ybKYUqAftjvUAjZnp3x9gfrWsTy1GrvrGwmYT
+  - **kusama**: 
+    - GCporqtiw7ybKYUqAftjvUAjZnp3x9gfrWsTy1GrvrGwmYT
+    - FqBtQGyuSdJfVXW1JYDbemWF14PK2GzUpo9zD2mrYL9hFps
