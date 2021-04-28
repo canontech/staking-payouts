@@ -65,7 +65,7 @@ npm install -G @zekemostov/staking-payouts
 # Github
 git clone https://github.com/emostov/staking-payouts.git
 cd staking-payouts
-yarn run install
+yarn install
 yarn run build
 ```
 
@@ -119,7 +119,7 @@ Options:
 # The docker files rely on the TS already being transpiled to JS,
 # so we first do standard install.
 yarn install
-yarn build
+yarn run build
 docker build -t payouts .
 ```
 
