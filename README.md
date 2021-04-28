@@ -46,7 +46,7 @@ Want to automate the payout gather process?
 
 #### Perquisites
 
-- node.js > 12
+- node.js > 14
 
 #### Updating
 
