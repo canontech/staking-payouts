@@ -41,7 +41,7 @@ export async function collectPayouts({
 	}
 	const currEra = activeInfoOpt.unwrap().index.toNumber();
 
-	const batch = [];
+	const payouts = [];
 	for (const stash of stashes) {
 		// Get payouts for a validator
 		const controllerOpt = await api.query.staking.bonded(stash);
@@ -74,7 +74,7 @@ export async function collectPayouts({
 			// Check they nominated that era
 			if (await isValidatingInEra(api, stash, e)) {
 				const payoutStakes = api.tx.staking.payoutStakers(stash, e);
-				batch.push(payoutStakes);
+				payouts.push(payoutStakes);
 			}
 		}
 
@@ -83,23 +83,23 @@ export async function collectPayouts({
 			if (await isValidatingInEra(api, stash, e)) {
 				// Get payouts for each era where payouts have not been claimed
 				const payoutStakes = api.tx.staking.payoutStakers(stash, e);
-				batch.push(payoutStakes);
+				payouts.push(payoutStakes);
 			}
 		}
 	}
 
-	if (!batch.length) {
-		log.info('No txs to send');
+	if (!payouts.length) {
+		log.info('No payouts to claim');
 		return;
 	}
 
 	log.info(
-		`Sending tx: \n${batch.map((t) =>
-			JSON.stringify(t.method.toHuman(), undefined, 2)
-		)}`
+		`Creating transasction(s) from the following payouts: \n${payouts
+			.map((t) => JSON.stringify(t.method.toHuman(), undefined, 2))
+			.toString()}`
 	);
 
-	await signAndSendMaybeBatch(api, batch, suri);
+	await signAndSendTxs(api, payouts, suri);
 }
 
 async function isValidatingInEra(
@@ -116,9 +116,9 @@ async function isValidatingInEra(
 	}
 }
 
-async function signAndSendMaybeBatch(
+async function signAndSendTxs(
 	api: ApiPromise,
-	batch: SubmittableExtrinsic<'promise', ISubmittableResult>[],
+	payouts: SubmittableExtrinsic<'promise', ISubmittableResult>[],
 	suri: string
 ) {
 	await cryptoWaitReady();
@@ -132,16 +132,55 @@ async function signAndSendMaybeBatch(
 			)}`
 		);
 
-	try {
-		let res;
-		if (batch.length == 1) {
-			res = await batch[0]?.signAndSend(signingKeys);
-		} else if (batch.length > 1) {
-			res = await api.tx.utility.batch(batch).signAndSend(signingKeys);
+	const { maxExtrinsic } = api.consts.system.blockWeights.perClass.normal;
+
+	// Transactions to send. We will have multiple transactions if the batch
+	// is too big
+	const txs = [];
+
+	while (payouts.length > 1) {
+		const tempPayouts = [...payouts];
+
+		let toHeavy = true;
+		while (toHeavy) {
+			const { weight: txWeight } = await api.tx.utility
+				.batch(tempPayouts)
+				.paymentInfo(signingKeys);
+
+			if (txWeight.gte(maxExtrinsic)) {
+				// If the tx weight is greater than the max allowed weight, try creating
+				// a batch with one less payout
+				tempPayouts.pop();
+			} else {
+				// If the tx wegith is under the max allowed weight don't remove any payouts
+				toHeavy = false;
+			}
 		}
-		log.info(`Node response to tx: ${res}`);
-	} catch (e) {
-		log.error('Tx failed to sign and send');
-		log.error(e);
+
+		if (tempPayouts.length) {
+			// Add the batch we just created to the list of all the txs we will eventually send.
+			txs.push(api.tx.utility.batch(tempPayouts));
+		}
+		// Remove the payouts that where included in the last created tx
+		payouts = payouts.slice(tempPayouts.length);
+	}
+
+	if (payouts.length === 1) {
+		txs.push(payouts[0]);
+	}
+
+	// Send all the transactions
+	log.info(`Getting ready to send ${txs.length} transactions.`);
+	for (const [i, tx] of txs.entries()) {
+		log.info(
+			`Sending ${tx.method.section}.${tx.method.method} (tx ${i}/${txs.length})`
+		);
+		try {
+			const res = await tx.signAndSend(signingKeys);
+			log.info(`Node response to tx: ${res.toString()}`);
+		} catch (e) {
+			log.error(`Tx failed to sign and send (tx ${i}/${txs.length})`);
+			log.error(e);
+		}
 	}
 }
