@@ -1,6 +1,6 @@
 {
   "name": "@zekemostov/staking-payouts",
-  "version": "0.3.2",
+  "version": "1.0.1",
   "description": "CLI to make staking payout transactions for Substrate FRAME-based chains",
   "bin": {
     "payouts": "build/index.js"
@@ -29,14 +29,14 @@
     "build": "tsc -p tsconfig.json"
   },
   "devDependencies": {
-    "@substrate/dev": "^0.4.0",
-    "@types/node": "^14.14.34",
+    "@substrate/dev": "^0.5.2",
+    "@types/node": "^15.0.1",
     "@types/yargs": "^16.0.0",
     "typescript": "^4.2.4"
   },
   "dependencies": {
     "@polkadot/api": "^4.3.1",
     "winston": "^3.3.3",
-    "yargs": "^16.2.0"
+    "yargs": "^17.0.0"
   }
 }
