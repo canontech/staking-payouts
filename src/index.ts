@@ -49,7 +49,7 @@ async function main() {
 		},
 	}).argv;
 
-	DEBUG && log.info(`suriFile: ${suriFile}`);
+	DEBUG && log.debug(`suriFile: ${suriFile}`);
 	let suriData;
 	try {
 		suriData = fs.readFileSync(suriFile, 'utf-8');
@@ -91,7 +91,7 @@ async function main() {
 		);
 		return;
 	}
-	DEBUG && log.info(`Parsed stash address:\n		${stashesParsed}`);
+	DEBUG && log.debug(`Parsed stash address:\n		${stashesParsed}`);
 
 	const provider = new WsProvider(ws);
 	const api = await ApiPromise.create({

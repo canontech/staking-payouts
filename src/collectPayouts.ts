@@ -98,6 +98,10 @@ export async function collectPayouts({
 			.map((t) => JSON.stringify(t.method.toHuman(), undefined, 2))
 			.toString()}`
 	);
+	log.info(`Total of ${payouts.length} payouts.`);
+	log.info(
+		`Transactions are being created. This may take some time if there are many unclaimed eras.`
+	);
 
 	await signAndSendTxs(api, payouts, suri);
 }
@@ -125,7 +129,7 @@ async function signAndSendTxs(
 	const keyring = new Keyring();
 	const signingKeys = keyring.createFromUri(suri, {}, 'sr25519');
 	DEBUG &&
-		log.info(
+		log.debug(
 			`Sender address: ${keyring.encodeAddress(
 				signingKeys.address,
 				api.registry.chainSS58
@@ -143,11 +147,10 @@ async function signAndSendTxs(
 
 		let toHeavy = true;
 		while (toHeavy) {
-			const { weight: txWeight } = await api.tx.utility
-				.batch(tempPayouts)
-				.paymentInfo(signingKeys);
+			const batch = api.tx.utility.batch(tempPayouts);
+			const { weight: txWeight } = await batch.paymentInfo(signingKeys);
 
-			if (txWeight.gte(maxExtrinsic)) {
+			if (txWeight.muln(batch.length).addn(100).gte(maxExtrinsic)) {
 				// If the tx weight is greater than the max allowed weight, try creating
 				// a batch with one less payout
 				tempPayouts.pop();
@@ -173,13 +176,21 @@ async function signAndSendTxs(
 	log.info(`Getting ready to send ${txs.length} transactions.`);
 	for (const [i, tx] of txs.entries()) {
 		log.info(
-			`Sending ${tx.method.section}.${tx.method.method} (tx ${i}/${txs.length})`
+			`Sending ${tx.method.section}.${tx.method.method} (tx ${i + 1}/${
+				txs.length
+			})`
 		);
+		DEBUG &&
+			log.debug(
+				`${tx.method.section}.${tx.method.method} has ${
+					((tx.method.args[0] as unknown) as [])?.length
+				} calls`
+			);
 		try {
 			const res = await tx.signAndSend(signingKeys);
 			log.info(`Node response to tx: ${res.toString()}`);
 		} catch (e) {
-			log.error(`Tx failed to sign and send (tx ${i}/${txs.length})`);
+			log.error(`Tx failed to sign and send (tx ${i + 1}/${txs.length})`);
 			log.error(e);
 		}
 	}
