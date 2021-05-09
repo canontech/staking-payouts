@@ -136,6 +136,7 @@ async function signAndSendTxs(
 	await cryptoWaitReady();
 	const keyring = new Keyring();
 	const signingKeys = keyring.createFromUri(suri, {}, 'sr25519');
+
 	DEBUG &&
 		log.debug(
 			`Sender address: ${keyring.encodeAddress(
@@ -222,6 +223,7 @@ async function signAndSendTxs(
 				txs.length
 			})`
 		);
+
 		DEBUG &&
 			tx.method.method.toLowerCase() === 'batch' &&
 			log.debug(
@@ -229,6 +231,7 @@ async function signAndSendTxs(
 					((tx.method.args[0] as unknown) as [])?.length
 				} calls`
 			);
+
 		try {
 			const res = await tx.signAndSend(signingKeys);
 			log.info(`Node response to tx: ${res.toString()}`);
