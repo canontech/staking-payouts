@@ -73,13 +73,13 @@ yarn run build
 
 ```bash
 # NPM
-payouts -w wss://kusama-rpc.polkadot.io \
+payouts -w wss://kusama.api.onfinality.io/public \
   -s 15Jbynf3EcRqdHV1K14LXYh7PQFTbp5wiXfrc4kbMReR9KxA \
   -u ./key.example.txt \
   -e 8
 
 # Github
-node build/index.js -w wss://kusama-rpc.polkadot.io \
+node build/index.js -w wss://kusama.api.onfinality.io/public \
   -s 15Jbynf3EcRqdHV1K14LXYh7PQFTbp5wiXfrc4kbMReR9KxA \
   -u ./key.example.txt \
   -e 8
@@ -88,7 +88,7 @@ node build/index.js -w wss://kusama-rpc.polkadot.io \
 **NOTE:** you can also specify a json file with an array of validator stash addresses:
 
 ```bash
-payouts -ws wss://kusama-rpc.polkadot.io \
+payouts -ws wss://kusama.api.onfinality.io/public \
   --stashesFile ./stashes.example.json \
   --suriFile ./key.example.txt
 ```
@@ -126,7 +126,7 @@ docker build -t payouts .
 ### Run
 
 ```bash
-docker run payouts -w wss://kusama-rpc.polkadot.io \
+docker run payouts -w wss://kusama.api.onfinality.io/public \
   -s GCporqtiw7ybKYUqAftjvUAjZnp3x9gfrWsTy1GrvrGwmYT \
   -u ./key.example.txt
 ```

@@ -5,7 +5,7 @@ const myFormat = format.printf(({ level, message, label, timestamp }) => {
 });
 
 export const log = createLogger({
-	level: 'info',
+	level: 'debug',
 	format: format.combine(
 		format.label({ label: 'payouts' }),
 		format.timestamp({

@@ -1,11 +1,14 @@
+/* eslint-disable @typescript-eslint/restrict-template-expressions */
 import { ApiPromise, Keyring } from '@polkadot/api';
 import { SubmittableExtrinsic } from '@polkadot/api/submittable/types';
-import { ISubmittableResult } from '@polkadot/types/types';
+import { Vec } from '@polkadot/types/codec';
+import { Codec, ISubmittableResult } from '@polkadot/types/types';
 import { cryptoWaitReady } from '@polkadot/util-crypto';
 
 import { log } from './logger';
 
 const DEBUG = process.env.PAYOUTS_DEBUG;
+const MAX_CALLS = 9;
 
 /**
  * Gather uncollected payouts for each validator, checking each era since there
@@ -41,7 +44,7 @@ export async function collectPayouts({
 	}
 	const currEra = activeInfoOpt.unwrap().index.toNumber();
 
-	const batch = [];
+	const payouts = [];
 	for (const stash of stashes) {
 		// Get payouts for a validator
 		const controllerOpt = await api.query.staking.bonded(stash);
@@ -74,7 +77,7 @@ export async function collectPayouts({
 			// Check they nominated that era
 			if (await isValidatingInEra(api, stash, e)) {
 				const payoutStakes = api.tx.staking.payoutStakers(stash, e);
-				batch.push(payoutStakes);
+				payouts.push(payoutStakes);
 			}
 		}
 
@@ -83,23 +86,32 @@ export async function collectPayouts({
 			if (await isValidatingInEra(api, stash, e)) {
 				// Get payouts for each era where payouts have not been claimed
 				const payoutStakes = api.tx.staking.payoutStakers(stash, e);
-				batch.push(payoutStakes);
+				payouts.push(payoutStakes);
 			}
 		}
 	}
 
-	if (!batch.length) {
-		log.info('No txs to send');
+	if (!payouts.length) {
+		log.info('No payouts to claim');
 		return;
 	}
 
 	log.info(
-		`Sending tx: \n${batch.map((t) =>
-			JSON.stringify(t.method.toHuman(), undefined, 2)
-		)}`
+		`Creating transasction(s) from the following payouts: \n${payouts
+			.map(
+				({ method: { section, method, args } }) =>
+					`${section}.${method}(${
+						args.map ? args.map((a) => `${a.toHuman()}`).join(', ') : args
+					})`
+			)
+			.join('\n')}`
+	);
+	log.info(`Total of ${payouts.length} unclaimed payouts.`);
+	log.info(
+		`Transactions are being created. This may take some time if there are many unclaimed eras.`
 	);
 
-	await signAndSendMaybeBatch(api, batch, suri);
+	await signAndSendTxs(api, payouts, suri);
 }
 
 async function isValidatingInEra(
@@ -116,32 +128,116 @@ async function isValidatingInEra(
 	}
 }
 
-async function signAndSendMaybeBatch(
+async function signAndSendTxs(
 	api: ApiPromise,
-	batch: SubmittableExtrinsic<'promise', ISubmittableResult>[],
+	payouts: SubmittableExtrinsic<'promise', ISubmittableResult>[],
 	suri: string
 ) {
 	await cryptoWaitReady();
 	const keyring = new Keyring();
 	const signingKeys = keyring.createFromUri(suri, {}, 'sr25519');
+
 	DEBUG &&
-		log.info(
+		log.debug(
 			`Sender address: ${keyring.encodeAddress(
 				signingKeys.address,
 				api.registry.chainSS58
 			)}`
 		);
 
-	try {
-		let res;
-		if (batch.length == 1) {
-			res = await batch[0]?.signAndSend(signingKeys);
-		} else if (batch.length > 1) {
-			res = await api.tx.utility.batch(batch).signAndSend(signingKeys);
+	const { maxExtrinsic } = api.consts.system.blockWeights.perClass.normal;
+	// Assume most of the time we want batches of size 8. Below we check if that is
+	// to big, and if it is we reduce the number of calls in each batch until it is
+	// below the max allowed weight.
+	// Note: 8 may need to be adjusted in the future - can look into adding a CLI flag.
+	const byMaxCalls = payouts.reduce((byMaxCalls, tx, idx) => {
+		if (idx % MAX_CALLS === 0) {
+			byMaxCalls.push([]);
 		}
-		log.info(`Node response to tx: ${res}`);
-	} catch (e) {
-		log.error('Tx failed to sign and send');
-		log.error(e);
+		byMaxCalls[byMaxCalls.length - 1].push(tx);
+
+		return byMaxCalls;
+	}, [] as SubmittableExtrinsic<'promise'>[][]);
+
+	// We will create multiple transactions if the batch is too big.
+	const txs = [];
+	while (byMaxCalls.length) {
+		const calls = byMaxCalls.shift();
+		if (!calls) {
+			// Shouldn't be possible, but this makes tsc happy
+			break;
+		}
+
+		let toHeavy = true;
+		while (toHeavy) {
+			const batch = api.tx.utility.batch(calls);
+			const { weight } = await batch.paymentInfo(signingKeys);
+			if (weight.muln(batch.length).gte(maxExtrinsic)) {
+				// Remove a call from the batch since it will get rejected for exhausting resources.
+				const removeTx = calls.pop();
+				if (!removeTx) {
+					// `removeTx` is undefined, which shouldn't happen and means we can't even
+					// fit one call into a batch.
+					toHeavy = false;
+				} else if (
+					!byMaxCalls[byMaxCalls.length - 1] ||
+					byMaxCalls[byMaxCalls.length - 1].length >= MAX_CALLS
+				) {
+					// There is either no subarray of txs left OR the subarray at the front is greater
+					// then the max size we want, so we create a new subarray.
+					byMaxCalls.push([removeTx]);
+				} else {
+					// Add the removed tx to the last subarray, which at this point only has
+					// other remvoed txs.
+					byMaxCalls[byMaxCalls.length - 1].push(removeTx);
+				}
+			} else {
+				toHeavy = false;
+			}
+		}
+
+		if (calls.length == 1) {
+			txs.push(calls[0]);
+		} else if (calls.length > 1) {
+			txs.push(api.tx.utility.batch(calls));
+		}
+	}
+
+	DEBUG &&
+		log.debug(
+			// eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access
+			`Calls per tx ${txs
+				.map((t) =>
+					t.method.method.toLowerCase() == 'batch'
+						? (t.args[0] as Vec<Codec>).length
+						: 1
+				)
+				.toString()}`
+		);
+
+	// Send all the transactions
+	log.info(`Getting ready to send ${txs.length} transactions.`);
+	for (const [i, tx] of txs.entries()) {
+		log.info(
+			`Sending ${tx.method.section}.${tx.method.method} (tx ${i + 1}/${
+				txs.length
+			})`
+		);
+
+		DEBUG &&
+			tx.method.method.toLowerCase() === 'batch' &&
+			log.debug(
+				`${tx.method.section}.${tx.method.method} has ${
+					((tx.method.args[0] as unknown) as [])?.length
+				} calls`
+			);
+
+		try {
+			const res = await tx.signAndSend(signingKeys);
+			log.info(`Node response to tx: ${res.toString()}`);
+		} catch (e) {
+			log.error(`Tx failed to sign and send (tx ${i + 1}/${txs.length})`);
+			log.error(e);
+		}
 	}
 }
