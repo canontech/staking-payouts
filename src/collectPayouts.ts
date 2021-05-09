@@ -1,11 +1,14 @@
+/* eslint-disable @typescript-eslint/restrict-template-expressions */
 import { ApiPromise, Keyring } from '@polkadot/api';
 import { SubmittableExtrinsic } from '@polkadot/api/submittable/types';
-import { ISubmittableResult } from '@polkadot/types/types';
+import { Vec } from '@polkadot/types/codec';
+import { Codec, ISubmittableResult } from '@polkadot/types/types';
 import { cryptoWaitReady } from '@polkadot/util-crypto';
 
 import { log } from './logger';
 
 const DEBUG = process.env.PAYOUTS_DEBUG;
+const MAX_CALLS = 9;
 
 /**
  * Gather uncollected payouts for each validator, checking each era since there
@@ -95,10 +98,15 @@ export async function collectPayouts({
 
 	log.info(
 		`Creating transasction(s) from the following payouts: \n${payouts
-			.map((t) => JSON.stringify(t.method.toHuman(), undefined, 2))
-			.toString()}`
+			.map(
+				({ method: { section, method, args } }) =>
+					`${section}.${method}(${
+						args.map ? args.map((a) => `${a.toHuman()}`).join(', ') : args
+					})`
+			)
+			.join('\n')}`
 	);
-	log.info(`Total of ${payouts.length} payouts.`);
+	log.info(`Total of ${payouts.length} unclaimed payouts.`);
 	log.info(
 		`Transactions are being created. This may take some time if there are many unclaimed eras.`
 	);
@@ -140,20 +148,22 @@ async function signAndSendTxs(
 	// Assume most of the time we want batches of size 8. Below we check if that is
 	// to big, and if it is we reduce the number of calls in each batch until it is
 	// below the max allowed weight.
-	const by8 = payouts.reduce((by8, tx, idx) => {
-		if (idx % 8 === 0) {
-			by8.push([]);
+	// Note: 8 may need to be adjusted in the future - can look into adding a CLI flag.
+	const byMaxCalls = payouts.reduce((byMaxCalls, tx, idx) => {
+		if (idx % MAX_CALLS === 0) {
+			byMaxCalls.push([]);
 		}
-		by8[by8.length - 1].push(tx);
+		byMaxCalls[byMaxCalls.length - 1].push(tx);
 
-		return by8;
+		return byMaxCalls;
 	}, [] as SubmittableExtrinsic<'promise'>[][]);
 
-	// We will have multiple transactions if the batch is too big.
+	// We will create multiple transactions if the batch is too big.
 	const txs = [];
-	while (by8.length) {
-		const calls = by8.pop();
+	while (byMaxCalls.length) {
+		const calls = byMaxCalls.shift();
 		if (!calls) {
+			// Shouldn't be possible, but this makes tsc happy
 			break;
 		}
 
@@ -162,16 +172,23 @@ async function signAndSendTxs(
 			const batch = api.tx.utility.batch(calls);
 			const { weight } = await batch.paymentInfo(signingKeys);
 			if (weight.muln(batch.length).gte(maxExtrinsic)) {
+				// Remove a call from the batch since it will get rejected for exhausting resources.
 				const removeTx = calls.pop();
 				if (!removeTx) {
-					// calls is empty, something strange happened and we can stop trying.
+					// `removeTx` is undefined, which shouldn't happen and means we can't even
+					// fit one call into a batch.
 					toHeavy = false;
-				} else if (!by8[0] || by8[0].length >= 8) {
+				} else if (
+					!byMaxCalls[byMaxCalls.length - 1] ||
+					byMaxCalls[byMaxCalls.length - 1].length >= MAX_CALLS
+				) {
 					// There is either no subarray of txs left OR the subarray at the front is greater
 					// then the max size we want, so we create a new subarray.
-					by8.unshift([removeTx]);
+					byMaxCalls.push([removeTx]);
 				} else {
-					by8[0].push(removeTx);
+					// Add the removed tx to the last subarray, which at this point only has
+					// other remvoed txs.
+					byMaxCalls[byMaxCalls.length - 1].push(removeTx);
 				}
 			} else {
 				toHeavy = false;
@@ -185,6 +202,18 @@ async function signAndSendTxs(
 		}
 	}
 
+	DEBUG &&
+		log.debug(
+			// eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access
+			`Calls per tx ${txs
+				.map((t) =>
+					t.method.method.toLowerCase() == 'batch'
+						? (t.args[0] as Vec<Codec>).length
+						: 1
+				)
+				.toString()}`
+		);
+
 	// Send all the transactions
 	log.info(`Getting ready to send ${txs.length} transactions.`);
 	for (const [i, tx] of txs.entries()) {
@@ -194,6 +223,7 @@ async function signAndSendTxs(
 			})`
 		);
 		DEBUG &&
+			tx.method.method.toLowerCase() === 'batch' &&
 			log.debug(
 				`${tx.method.section}.${tx.method.method} has ${
 					((tx.method.args[0] as unknown) as [])?.length
