@@ -137,39 +137,52 @@ async function signAndSendTxs(
 		);
 
 	const { maxExtrinsic } = api.consts.system.blockWeights.perClass.normal;
+	// Assume most of the time we want batches of size 8. Below we check if that is
+	// to big, and if it is we reduce the number of calls in each batch until it is
+	// below the max allowed weight.
+	const by8 = payouts.reduce((by8, tx, idx) => {
+		if (idx % 8 === 0) {
+			by8.push([]);
+		}
+		by8[by8.length - 1].push(tx);
 
-	// Transactions to send. We will have multiple transactions if the batch
-	// is too big
+		return by8;
+	}, [] as SubmittableExtrinsic<'promise'>[][]);
+
+	// We will have multiple transactions if the batch is too big.
 	const txs = [];
-
-	while (payouts.length > 1) {
-		const tempPayouts = [...payouts];
+	while (by8.length) {
+		const calls = by8.pop();
+		if (!calls) {
+			break;
+		}
 
 		let toHeavy = true;
 		while (toHeavy) {
-			const batch = api.tx.utility.batch(tempPayouts);
-			const { weight: txWeight } = await batch.paymentInfo(signingKeys);
-
-			if (txWeight.muln(batch.length).addn(100).gte(maxExtrinsic)) {
-				// If the tx weight is greater than the max allowed weight, try creating
-				// a batch with one less payout
-				tempPayouts.pop();
+			const batch = api.tx.utility.batch(calls);
+			const { weight } = await batch.paymentInfo(signingKeys);
+			if (weight.muln(batch.length).gte(maxExtrinsic)) {
+				const removeTx = calls.pop();
+				if (!removeTx) {
+					// calls is empty, something strange happened and we can stop trying.
+					toHeavy = false;
+				} else if (!by8[0] || by8[0].length >= 8) {
+					// There is either no subarray of txs left OR the subarray at the front is greater
+					// then the max size we want, so we create a new subarray.
+					by8.unshift([removeTx]);
+				} else {
+					by8[0].push(removeTx);
+				}
 			} else {
-				// If the tx wegith is under the max allowed weight don't remove any payouts
 				toHeavy = false;
 			}
 		}
 
-		if (tempPayouts.length) {
-			// Add the batch we just created to the list of all the txs we will eventually send.
-			txs.push(api.tx.utility.batch(tempPayouts));
+		if (calls.length == 1) {
+			txs.push(calls[0]);
+		} else if (calls.length > 1) {
+			txs.push(api.tx.utility.batch(calls));
 		}
-		// Remove the payouts that where included in the last created tx
-		payouts = payouts.slice(tempPayouts.length);
-	}
-
-	if (payouts.length === 1) {
-		txs.push(payouts[0]);
 	}
 
 	// Send all the transactions
