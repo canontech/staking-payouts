@@ -233,7 +233,7 @@ async function signAndSendTxs(
 			);
 
 		try {
-			const res = await tx.signAndSend(signingKeys);
+			const res = await tx.signAndSend(signingKeys, { nonce: -1 });
 			log.info(`Node response to tx: ${res.toString()}`);
 		} catch (e) {
 			log.error(`Tx failed to sign and send (tx ${i + 1}/${txs.length})`);
