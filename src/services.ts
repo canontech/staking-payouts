@@ -50,7 +50,6 @@ export async function collectPayouts({
 		return;
 	}
 
-	log.info(`Total of ${payouts.length} unclaimed payouts.`);
 	log.info(
 		`Transactions are being created. This may take some time if there are many unclaimed eras.`
 	);
@@ -141,7 +140,7 @@ export async function listPendingPayouts({
 
 	payouts.length &&
 		log.info(
-			`The following pending payouts where found: \n${payouts
+			`The following unclaimed payouts where found: \n${payouts
 				.map(
 					({ method: { section, method, args } }) =>
 						`${section}.${method}(${
@@ -149,7 +148,8 @@ export async function listPendingPayouts({
 						})`
 				)
 				.join('\n')}`
-		);
+		) &&
+		log.info(`Total of ${payouts.length} unclaimed payouts.`);
 
 	return payouts;
 }
