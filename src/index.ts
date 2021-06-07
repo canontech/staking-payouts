@@ -1,31 +1,14 @@
 #!/usr/bin/env node
+/* eslint-disable @typescript-eslint/no-misused-promises */
+/* eslint-disable @typescript-eslint/await-thenable */
 
-import { ApiPromise, WsProvider } from '@polkadot/api';
-import fs from 'fs';
 import yargs from 'yargs';
 
-import { collectPayouts } from './collectPayouts';
-import { parseStashes, payout } from './handlers';
-import { isValidSeed } from './isValidSeed';
+import { collect, ls } from './handlers';
 import { log } from './logger';
 
-const DEBUG = process.env.PAYOUTS_DEBUG;
-
 async function main() {
-	const { ws, stashesFile, stashes, suriFile, eraDepth } = yargs
-		.command(['payout', '$0'], 'Claim payouts', (yargs) => {
-			return yargs.options({
-				suriFile: {
-					alias: 'u',
-					description: 'Path to .txt file containing private key seed.',
-					string: true,
-					demandOption: true,
-				},
-			});
-		})
-		.command({
-			handler: payout,
-		})
+	await yargs
 		.options({
 			ws: {
 				alias: 'w',
@@ -61,42 +44,26 @@ async function main() {
 				global: true,
 			},
 		})
-		.command('ls', 'List pending payouts').argv;
-
-	DEBUG && log.debug(`suriFile: ${suriFile}`);
-	let suriData;
-	try {
-		suriData = fs.readFileSync(suriFile, 'utf-8');
-	} catch (e) {
-		log.error('Suri file could not be opened');
-		log.error(e);
-		return;
-	}
-	const suri = suriData.split(/\r?\n/)[0];
-	if (!suri) {
-		log.error('No suri could be read in from file.');
-		return;
-	}
-	if (!isValidSeed(suri)) {
-		log.error('Suri is invalid');
-		return;
-	}
-
-	const stashesParsed = parseStashes(stashesFile, stashes);
-	if (!stashesParsed) return;
-	DEBUG && log.debug(`Parsed stash address: ${stashesParsed.join(', ')}`);
-
-	const provider = new WsProvider(ws);
-	const api = await ApiPromise.create({
-		provider,
-	});
-
-	await collectPayouts({
-		api,
-		suri,
-		stashes: stashesParsed,
-		eraDepth,
-	});
+		.command(
+			['collect', '$0'],
+			'Claim pending payouts',
+			// @ts-ignore
+			(yargs) => {
+				return yargs.options({
+					suriFile: {
+						alias: 'u',
+						description: 'Path to .txt file containing private key seed.',
+						string: true,
+						demandOption: true,
+					},
+				});
+			},
+			// @ts-ignore
+			collect
+		)
+		// @ts-ignore
+		.command('ls', 'List pending payouts', {}, ls)
+		.parse();
 }
 
 main()

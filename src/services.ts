@@ -10,6 +10,13 @@ import { log } from './logger';
 const DEBUG = process.env.PAYOUTS_DEBUG;
 const MAX_CALLS = 9;
 
+export interface ServiceArgs {
+	api: ApiPromise;
+	suri: string;
+	stashes: string[];
+	eraDepth: number;
+}
+
 /**
  * Gather uncollected payouts for each validator, checking each era since there
  * last claimed payout, and creating a `batch` tx with `payoutStakers` txs.
@@ -31,16 +38,37 @@ export async function collectPayouts({
 	suri,
 	stashes,
 	eraDepth,
-}: {
-	api: ApiPromise;
-	suri: string;
-	stashes: string[];
-	eraDepth: number;
-}): Promise<void> {
+}: ServiceArgs): Promise<void> {
+	const payouts = await listPendingPayouts({
+		stashes,
+		eraDepth,
+		api,
+	});
+
+	if (!payouts || !payouts.length) {
+		log.info('No payouts to claim');
+		return;
+	}
+
+	log.info(`Total of ${payouts.length} unclaimed payouts.`);
+	log.info(
+		`Transactions are being created. This may take some time if there are many unclaimed eras.`
+	);
+
+	await signAndSendTxs(api, payouts, suri);
+}
+
+export async function listPendingPayouts({
+	api,
+	stashes,
+	eraDepth,
+}: Omit<ServiceArgs, 'suri'>): Promise<
+	SubmittableExtrinsic<'promise', ISubmittableResult>[] | null
+> {
 	const activeInfoOpt = await api.query.staking.activeEra();
 	if (activeInfoOpt.isNone) {
-		log.warn('ActiveEra is None, txs could not be completed.');
-		return;
+		log.warn('ActiveEra is None, pending payouts could not be fetched.');
+		return null;
 	}
 	const currEra = activeInfoOpt.unwrap().index.toNumber();
 
@@ -110,13 +138,8 @@ export async function collectPayouts({
 		}
 	}
 
-	if (!payouts.length) {
-		log.info('No payouts to claim');
-		return;
-	}
-
 	log.info(
-		`Creating transasction(s) from the following payouts: \n${payouts
+		`The following pending payouts where found: \n${payouts
 			.map(
 				({ method: { section, method, args } }) =>
 					`${section}.${method}(${
@@ -125,12 +148,8 @@ export async function collectPayouts({
 			)
 			.join('\n')}`
 	);
-	log.info(`Total of ${payouts.length} unclaimed payouts.`);
-	log.info(
-		`Transactions are being created. This may take some time if there are many unclaimed eras.`
-	);
 
-	await signAndSendTxs(api, payouts, suri);
+	return payouts;
 }
 
 async function isValidatingInEra(

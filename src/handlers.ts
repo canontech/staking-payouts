@@ -1,25 +1,27 @@
 import { ApiPromise, WsProvider } from '@polkadot/api';
 import fs from 'fs';
 
-import { collectPayouts } from './collectPayouts';
 import { isValidSeed } from './isValidSeed';
 import { log } from './logger';
+import { collectPayouts, listPendingPayouts } from './services';
 
 const DEBUG = process.env.PAYOUTS_DEBUG;
 
-export async function payout({
-	suriFile,
-	ws,
-	stashesFile,
-	stashes,
-	eraDepth,
-}: {
+interface HandlerArgs {
 	suriFile: string;
 	ws: string;
 	stashesFile?: string;
 	stashes?: (string | number)[];
 	eraDepth: number;
-}): Promise<void> {
+}
+
+export async function collect({
+	suriFile,
+	ws,
+	stashesFile,
+	stashes,
+	eraDepth,
+}: HandlerArgs): Promise<void> {
 	DEBUG && log.debug(`suriFile: ${suriFile}`);
 	let suriData;
 	try {
@@ -51,6 +53,28 @@ export async function payout({
 	await collectPayouts({
 		api,
 		suri,
+		stashes: stashesParsed,
+		eraDepth,
+	});
+}
+
+export async function ls({
+	ws,
+	stashesFile,
+	stashes,
+	eraDepth,
+}: Omit<HandlerArgs, 'suri'>): Promise<void> {
+	const stashesParsed = parseStashes(stashesFile, stashes);
+	if (!stashesParsed) return;
+	DEBUG && log.debug(`Parsed stash address: ${stashesParsed.join(', ')}`);
+
+	const provider = new WsProvider(ws);
+	const api = await ApiPromise.create({
+		provider,
+	});
+
+	await listPendingPayouts({
+		api,
 		stashes: stashesParsed,
 		eraDepth,
 	});
