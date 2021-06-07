@@ -69,17 +69,19 @@ yarn install
 yarn run build
 ```
 
-### Run
+### Collect unclaimed payouts
 
 ```bash
 # NPM
-payouts -w wss://kusama.api.onfinality.io/public \
+payouts collect \
+  -w wss://kusama.api.onfinality.io/public \
   -s 15Jbynf3EcRqdHV1K14LXYh7PQFTbp5wiXfrc4kbMReR9KxA \
   -u ./key.example.txt \
   -e 8
 
 # Github
-node build/index.js -w wss://kusama.api.onfinality.io/public \
+node build/index.js collect \
+  -w wss://kusama.api.onfinality.io/public \
   -s 15Jbynf3EcRqdHV1K14LXYh7PQFTbp5wiXfrc4kbMReR9KxA \
   -u ./key.example.txt \
   -e 8
@@ -88,14 +90,28 @@ node build/index.js -w wss://kusama.api.onfinality.io/public \
 **NOTE:** you can also specify a json file with an array of validator stash addresses:
 
 ```bash
-payouts -ws wss://kusama.api.onfinality.io/public \
+payouts collect \
+  -w wss://kusama.api.onfinality.io/public \
   --stashesFile ./stashes.example.json \
   --suriFile ./key.example.txt
+```
+
+### List unclaimed payouts
+
+```bash
+payouts ls \
+  -w wss://kusama.api.onfinality.io/public \
+  --stashesFile ./stashes.example.json \
+  -e 8
 ```
 
 ## Options
 
 ```log
+Commands:
+  index collect  Collect pending payouts                               [default]
+  index ls       List pending payouts
+
 Options:
       --help         Show help                                         [boolean]
       --version      Show version number                               [boolean]
@@ -105,11 +121,13 @@ Options:
                      addresses to call payouts for.                     [string]
   -s, --stashes      Array of stash addresses to call payouts for. Required if
                      not using stashesFile.                              [array]
-  -u, --suriFile     Path to .txt file containing private key seed.
-                                                             [string] [required]
   -e, --eraDepth     How many eras prior to the last collected era to check for
                      uncollected payouts.                  [number] [default: 0]
+  -u, --suriFile     Path to .txt file containing private key seed.
+                                                             [string] [required]
 ```
+
+**NOTE:** `collect` is the default command and as such can be omitted.
 
 ## Docker
 

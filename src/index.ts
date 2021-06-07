@@ -46,7 +46,7 @@ async function main() {
 		})
 		.command(
 			['collect', '$0'],
-			'Claim pending payouts',
+			'Collect pending payouts',
 			// @ts-ignore
 			(yargs) => {
 				return yargs.options({

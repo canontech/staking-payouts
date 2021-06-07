@@ -139,16 +139,17 @@ export async function listPendingPayouts({
 		}
 	}
 
-	log.info(
-		`The following pending payouts where found: \n${payouts
-			.map(
-				({ method: { section, method, args } }) =>
-					`${section}.${method}(${
-						args.map ? args.map((a) => `${a.toHuman()}`).join(', ') : args
-					})`
-			)
-			.join('\n')}`
-	);
+	payouts.length &&
+		log.info(
+			`The following pending payouts where found: \n${payouts
+				.map(
+					({ method: { section, method, args } }) =>
+						`${section}.${method}(${
+							args.map ? args.map((a) => `${a.toHuman()}`).join(', ') : args
+						})`
+				)
+				.join('\n')}`
+		);
 
 	return payouts;
 }
