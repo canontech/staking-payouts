@@ -147,7 +147,8 @@ docker build -t payouts .
 ### Run
 
 ```bash
-docker run payouts -w wss://kusama.api.onfinality.io/public \
+docker run payouts collect \
+  -w wss://kusama.api.onfinality.io/public \
   -s GCporqtiw7ybKYUqAftjvUAjZnp3x9gfrWsTy1GrvrGwmYT \
   -u ./key.example.txt
 ```
