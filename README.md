@@ -127,7 +127,10 @@ Options:
                                                              [string] [required]
 ```
 
-**NOTE:** `collect` is the default command and as such can be omitted.
+**NOTES:**
+
+  - `collect` is the default command and as such can be omitted.
+  - `--suriFile` is only require for the `collect` command.
 
 ## Docker
 
