@@ -4,7 +4,7 @@ stashes.kusama.json
 !stashes.example.json
 stashes.[a-z]*.json
 /build
-
+.DS_Store
 
 # Logs
 logs

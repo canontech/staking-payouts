@@ -84,13 +84,14 @@ export async function listPendingPayouts({
 						', '
 					)}`
 				);
-			validatorStashes.push(...targets.map((a) => a.toString()));
+			validatorStashes.push(...targets);
 		} else {
 			DEBUG && log.debug(`Validator address detected: ${stash}`);
 			validatorStashes.push(stash);
 		}
 	}
 
+	// Get pending payouts for the validator addresses
 	const payouts = [];
 	for (const stash of validatorStashes) {
 		const controllerOpt = await api.query.staking.bonded(stash);
