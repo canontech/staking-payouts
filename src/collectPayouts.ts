@@ -63,7 +63,7 @@ export async function collectPayouts({
 		}
 	}
 
-	// Get payouts for a validator
+	// Get pending payouts for the validator addresses
 	const payouts = [];
 	for (const stash of validatorStashes) {
 		const controllerOpt = await api.query.staking.bonded(stash);
