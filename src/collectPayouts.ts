@@ -44,9 +44,28 @@ export async function collectPayouts({
 	}
 	const currEra = activeInfoOpt.unwrap().index.toNumber();
 
-	const payouts = [];
+	// Get all the validator address to get payouts for
+	const validatorStashes = [];
 	for (const stash of stashes) {
-		// Get payouts for a validator
+		const maybeNominations = await api.query.staking.nominators(stash);
+		if (maybeNominations.isSome) {
+			const targets = maybeNominations.unwrap().targets.map((a) => a.toHuman());
+			DEBUG &&
+				log.debug(
+					`Nominator address detected: ${stash}. Adding its targets: ${targets.join(
+						', '
+					)}`
+				);
+			validatorStashes.push(...targets);
+		} else {
+			DEBUG && log.debug(`Validator address detected: ${stash}`);
+			validatorStashes.push(stash);
+		}
+	}
+
+	// Get pending payouts for the validator addresses
+	const payouts = [];
+	for (const stash of validatorStashes) {
 		const controllerOpt = await api.query.staking.bonded(stash);
 		if (controllerOpt.isNone) {
 			log.warn(`${stash} is not a valid stash address.`);
@@ -228,7 +247,7 @@ async function signAndSendTxs(
 			tx.method.method.toLowerCase() === 'batch' &&
 			log.debug(
 				`${tx.method.section}.${tx.method.method} has ${
-					((tx.method.args[0] as unknown) as [])?.length
+					(tx.method.args[0] as unknown as [])?.length
 				} calls`
 			);
 

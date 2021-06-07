@@ -91,7 +91,7 @@ async function main() {
 		);
 		return;
 	}
-	DEBUG && log.debug(`Parsed stash address:\n		${stashesParsed}`);
+	DEBUG && log.debug(`Parsed stash address: ${stashesParsed}`);
 
 	const provider = new WsProvider(ws);
 	const api = await ApiPromise.create({
