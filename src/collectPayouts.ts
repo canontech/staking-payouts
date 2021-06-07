@@ -56,13 +56,14 @@ export async function collectPayouts({
 						', '
 					)}`
 				);
-			validatorStashes.push(...targets.map((a) => a.toString()));
+			validatorStashes.push(...targets);
 		} else {
 			DEBUG && log.debug(`Validator address detected: ${stash}`);
 			validatorStashes.push(stash);
 		}
 	}
 
+	// Get payouts for a validator
 	const payouts = [];
 	for (const stash of validatorStashes) {
 		const controllerOpt = await api.query.staking.bonded(stash);
@@ -70,9 +71,8 @@ export async function collectPayouts({
 			log.warn(`${stash} is not a valid stash address.`);
 			continue;
 		}
-
 		const controller = controllerOpt.unwrap();
-		// Get payouts for a validator
+
 		const ledgerOpt = await api.query.staking.ledger(controller);
 		if (ledgerOpt.isNone) {
 			log.warn(`Staking ledger for ${stash} was not found.`);
