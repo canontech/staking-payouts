@@ -137,10 +137,6 @@ Options:
 ### Build
 
 ```bash
-# The docker files rely on the TS already being transpiled to JS,
-# so we first do standard install.
-yarn install
-yarn run build
 docker build -t payouts .
 ```
 
