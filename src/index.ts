@@ -67,8 +67,11 @@ async function main() {
 }
 
 main()
-	.catch(log.error)
-	.finally(() => {
+	.then(() => {
 		log.info('Exiting ...');
+		process.exit(0);
+	})
+	.catch(err => {
+		log.error(err);
 		process.exit(1);
 	});
