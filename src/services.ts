@@ -278,6 +278,7 @@ async function signAndSendTxs(
 		} catch (e) {
 			log.error(`Tx failed to sign and send (tx ${i + 1}/${txs.length})`);
 			log.error(e);
+			throw e;
 		}
 	}
 }
