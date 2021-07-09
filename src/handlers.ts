@@ -29,16 +29,16 @@ export async function collect({
 	} catch (e) {
 		log.error('Suri file could not be opened');
 		log.error(e);
-		return;
+		throw e;
 	}
 	const suri = suriData.split(/\r?\n/)[0];
 	if (!suri) {
 		log.error('No suri could be read in from file.');
-		return;
+		throw Error('No suri could be read in from file.');
 	}
 	if (!isValidSeed(suri)) {
 		log.error('Suri is invalid');
-		return;
+		throw Error('Suri is invalid');
 	}
 
 	const stashesParsed = parseStashes(stashesFile, stashes);
@@ -65,7 +65,6 @@ export async function ls({
 	eraDepth,
 }: Omit<HandlerArgs, 'suri'>): Promise<void> {
 	const stashesParsed = parseStashes(stashesFile, stashes);
-	if (!stashesParsed) return;
 	DEBUG && log.debug(`Parsed stash address: ${stashesParsed.join(', ')}`);
 
 	const provider = new WsProvider(ws);
@@ -83,7 +82,7 @@ export async function ls({
 export function parseStashes(
 	stashesFile?: string,
 	stashes?: (string | number)[]
-): string[] | null {
+): string[] {
 	let stashesParsed: string[];
 	if (stashesFile) {
 		let stashesData;
@@ -92,12 +91,13 @@ export function parseStashes(
 		} catch (e) {
 			log.error('Stashes file could not be opened');
 			log.error(e);
+			throw e;
 		}
 		// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
 		stashesParsed = JSON.parse(stashesData as unknown as string);
 		if (!Array.isArray(stashesParsed)) {
 			log.error('The stash addresses must be in a JSON file as an array.');
-			return null;
+			throw Error('The stash addresses must be in a JSON file as an array.');
 		}
 	} else if (Array.isArray(stashes)) {
 		stashesParsed = stashes as string[];
@@ -105,7 +105,9 @@ export function parseStashes(
 		log.error(
 			'You must provide a list of stashes with the --stashes or --stashesFile opton.'
 		);
-		return null;
+		throw Error(
+			'You must provide a list of stashes with the --stashes or --stashesFile opton.'
+		);
 	}
 
 	return stashesParsed;
