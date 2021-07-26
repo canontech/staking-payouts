@@ -28,16 +28,13 @@ export async function collect({
 		suriData = fs.readFileSync(suriFile, 'utf-8');
 	} catch (e) {
 		log.error('Suri file could not be opened');
-		log.error(e);
 		throw e;
 	}
 	const suri = suriData.split(/\r?\n/)[0];
 	if (!suri) {
-		log.error('No suri could be read in from file.');
 		throw Error('No suri could be read in from file.');
 	}
 	if (!isValidSeed(suri)) {
-		log.error('Suri is invalid');
 		throw Error('Suri is invalid');
 	}
 
@@ -90,21 +87,16 @@ export function parseStashes(
 			stashesData = fs.readFileSync(stashesFile);
 		} catch (e) {
 			log.error('Stashes file could not be opened');
-			log.error(e);
 			throw e;
 		}
 		// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
 		stashesParsed = JSON.parse(stashesData as unknown as string);
 		if (!Array.isArray(stashesParsed)) {
-			log.error('The stash addresses must be in a JSON file as an array.');
 			throw Error('The stash addresses must be in a JSON file as an array.');
 		}
 	} else if (Array.isArray(stashes)) {
 		stashesParsed = stashes as string[];
 	} else {
-		log.error(
-			'You must provide a list of stashes with the --stashes or --stashesFile opton.'
-		);
 		throw Error(
 			'You must provide a list of stashes with the --stashes or --stashesFile opton.'
 		);

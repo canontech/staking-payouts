@@ -277,7 +277,6 @@ async function signAndSendTxs(
 			log.info(`Node response to tx: ${res.toString()}`);
 		} catch (e) {
 			log.error(`Tx failed to sign and send (tx ${i + 1}/${txs.length})`);
-			log.error(e);
 			throw e;
 		}
 	}

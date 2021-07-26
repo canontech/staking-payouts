@@ -29,13 +29,13 @@
     "build": "tsc -p tsconfig.json"
   },
   "devDependencies": {
-    "@substrate/dev": "^0.5.2",
-    "@types/node": "^15.0.1",
-    "@types/yargs": "^17.0.0",
-    "typescript": "^4.2.4"
+    "@substrate/dev": "^0.5.4",
+    "@types/node": "^16.4.3",
+    "@types/yargs": "^17.0.2",
+    "typescript": "^4.3.5"
   },
   "dependencies": {
-    "@polkadot/api": "4.17.1",
+    "@polkadot/api": "5.2.1",
     "winston": "^3.3.3",
     "yargs": "^17.0.0"
   }
