@@ -1,6 +1,6 @@
 {
   "name": "@zekemostov/staking-payouts",
-  "version": "1.3.1",
+  "version": "1.3.2",
   "description": "CLI to make staking payout transactions for Substrate FRAME-based chains",
   "bin": {
     "payouts": "build/index.js"
