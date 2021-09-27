@@ -1,9 +1,14 @@
 /* eslint-disable @typescript-eslint/restrict-template-expressions */
 import { ApiPromise, Keyring } from '@polkadot/api';
 import { SubmittableExtrinsic } from '@polkadot/api/submittable/types';
-import { Vec } from '@polkadot/types/codec';
+import { Option, Vec } from '@polkadot/types/codec';
+import {
+	AccountId,
+	PalletStakingNominations,
+} from '@polkadot/types/interfaces';
 import { Codec, ISubmittableResult } from '@polkadot/types/types';
 import { cryptoWaitReady } from '@polkadot/util-crypto';
+import BN from 'bn.js';
 
 import { log } from './logger';
 
@@ -15,6 +20,7 @@ export interface ServiceArgs {
 	suri: string;
 	stashes: string[];
 	eraDepth: number;
+	portion: number;
 }
 
 /**
@@ -38,7 +44,7 @@ export async function collectPayouts({
 	suri,
 	stashes,
 	eraDepth,
-}: ServiceArgs): Promise<void> {
+}: Omit<ServiceArgs, 'portion'>): Promise<void> {
 	const payouts = await listPendingPayouts({
 		stashes,
 		eraDepth,
@@ -61,7 +67,7 @@ export async function listPendingPayouts({
 	api,
 	stashes,
 	eraDepth,
-}: Omit<ServiceArgs, 'suri'>): Promise<
+}: Omit<ServiceArgs, 'suri' | 'portion'>): Promise<
 	SubmittableExtrinsic<'promise', ISubmittableResult>[] | null
 > {
 	const activeInfoOpt = await api.query.staking.activeEra();
@@ -154,6 +160,74 @@ export async function listPendingPayouts({
 	return payouts;
 }
 
+export async function listLowestNominators({
+	api,
+	stashes,
+	portion,
+}: Omit<ServiceArgs, 'suri' | 'eraDepth'>): Promise<void> {
+	const maxBackers = Math.floor(256 * portion);
+	log.info(`Max backers per validator: ${maxBackers}`);
+
+	const nominators = await api.query.staking.nominators.entries<
+		Option<PalletStakingNominations>,
+		[AccountId]
+	>();
+
+	// get the ledgers of all the nominators. Same ordering a s nominators array.
+	const nomLedgers = await Promise.all(
+		nominators.map(async ([[stashAccountId], _]) => {
+			const cntOpt: Option<AccountId> = (await api.query.staking.bonded(
+				stashAccountId
+			)) as Option<AccountId>;
+
+			if (cntOpt.isNone) {
+				throw `Could not find controller for ${stashAccountId.toString()}`;
+			}
+
+			const cnt = cntOpt.unwrap().toString();
+			return await api.query.staking.ledger(cnt);
+		})
+	);
+
+	const stashNoms = new Map<string, [string, BN][]>();
+	nominators.forEach(([nom, nomInfoOpt], index) => {
+		if (nomInfoOpt.isNone) {
+			return;
+		}
+		const targets = nomInfoOpt.unwrap().targets.map((a) => a.toString());
+		const active = nomLedgers[index].unwrap().active;
+
+		// go through each stash and check if this nominator backs them.
+		stashes.forEach((s) => {
+			if (!targets.includes(s)) {
+				// if they don't back this stash, skip.
+				return;
+			}
+
+			// they back this stash, so add them to the validats stashes array of backerss.
+			const backers = stashNoms.get(s) || [];
+			backers.push([nom.toString(), active.toBn()]);
+			stashNoms.set(s, backers);
+		});
+	});
+
+	for (const val of Object.keys(stashNoms)) {
+		const backers = stashNoms.get(val);
+		if (!backers) {
+			continue;
+		}
+
+		// sort in descending order
+		backers?.sort((a, b) => b[1].sub(a[1]).toNumber());
+		const backersToKick = backers?.slice(maxBackers);
+
+		log.info(`Nominations to remove from validator ${val}`);
+		backersToKick.forEach((n) => {
+			log.info(`Nominator: ${n[0]}, ${n[1].toString(10)}`);
+		});
+	}
+}
+
 async function isValidatingInEra(
 	api: ApiPromise,
 	stash: string,
@@ -185,7 +259,8 @@ async function signAndSendTxs(
 			)}`
 		);
 
-	const { maxExtrinsic } = api.consts.system.blockWeights.perClass.normal;
+	const maxExtrinsic =
+		api.consts.system.blockWeights.perClass.normal.maxExtrinsic.unwrap().toBn();
 	// Assume most of the time we want batches of size 8. Below we check if that is
 	// to big, and if it is we reduce the number of calls in each batch until it is
 	// below the max allowed weight.

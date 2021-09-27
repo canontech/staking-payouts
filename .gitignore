@@ -1,6 +1,7 @@
 *.txt
 !key.example.txt
 stashes.kusama.json
+stashes.polkadot.json
 !stashes.example.json
 stashes.[a-z]*.json
 /build

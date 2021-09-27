@@ -4,7 +4,7 @@
 
 import yargs from 'yargs';
 
-import { collect, ls } from './handlers';
+import { collect, kickLs, ls } from './handlers';
 import { log } from './logger';
 
 async function main() {
@@ -63,6 +63,24 @@ async function main() {
 		)
 		// @ts-ignore
 		.command('ls', 'List pending payouts', {}, ls)
+		// @ts-ignore
+		.command(
+			['kick-ls'],
+			'List the bottom `portion` of nominators.',
+			// @ts-ignore
+			(yargs) => {
+				return yargs.options({
+					portion: {
+						alias: 'p',
+						description:
+							'The portion of nominators to keep, expressed as decimal. I.E. `.75` would list the bottom 25% of nominators.',
+						string: true,
+						demandOption: true,
+					},
+				});
+			},
+			kickLs
+		)
 		.parse();
 }
 
@@ -71,7 +89,7 @@ main()
 		log.info('Exiting ...');
 		process.exit(0);
 	})
-	.catch(err => {
+	.catch((err) => {
 		log.error(err);
 		process.exit(1);
 	});

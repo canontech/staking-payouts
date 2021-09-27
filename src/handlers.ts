@@ -3,7 +3,11 @@ import fs from 'fs';
 
 import { isValidSeed } from './isValidSeed';
 import { log } from './logger';
-import { collectPayouts, listPendingPayouts } from './services';
+import {
+	collectPayouts,
+	listLowestNominators,
+	listPendingPayouts,
+} from './services';
 
 const DEBUG = process.env.PAYOUTS_DEBUG;
 
@@ -13,6 +17,7 @@ interface HandlerArgs {
 	stashesFile?: string;
 	stashes?: (string | number)[];
 	eraDepth: number;
+	portion: number;
 }
 
 export async function collect({
@@ -21,7 +26,7 @@ export async function collect({
 	stashesFile,
 	stashes,
 	eraDepth,
-}: HandlerArgs): Promise<void> {
+}: Omit<HandlerArgs, 'portion'>): Promise<void> {
 	DEBUG && log.debug(`suriFile: ${suriFile}`);
 	let suriData;
 	try {
@@ -73,6 +78,27 @@ export async function ls({
 		api,
 		stashes: stashesParsed,
 		eraDepth,
+	});
+}
+
+export async function kickLs({
+	ws,
+	stashesFile,
+	stashes,
+	portion,
+}: Omit<HandlerArgs, 'suri' | 'eraDepth'>): Promise<void> {
+	const stashesParsed = parseStashes(stashesFile, stashes);
+	DEBUG && log.debug(`Parsed stash address: ${stashesParsed.join(', ')}`);
+
+	const provider = new WsProvider(ws);
+	const api = await ApiPromise.create({
+		provider,
+	});
+
+	await listLowestNominators({
+		api,
+		stashes: stashesParsed,
+		portion,
 	});
 }
 
