@@ -185,7 +185,8 @@ async function signAndSendTxs(
 			)}`
 		);
 
-	const { maxExtrinsic } = api.consts.system.blockWeights.perClass.normal;
+	const maxExtrinsic =
+		api.consts.system.blockWeights.perClass.normal.maxExtrinsic.unwrap();
 	// Assume most of the time we want batches of size 8. Below we check if that is
 	// to big, and if it is we reduce the number of calls in each batch until it is
 	// below the max allowed weight.
