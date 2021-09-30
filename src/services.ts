@@ -4,6 +4,7 @@ import { SubmittableExtrinsic } from '@polkadot/api/submittable/types';
 import { Vec } from '@polkadot/types/codec';
 import { Codec, ISubmittableResult } from '@polkadot/types/types';
 import { cryptoWaitReady } from '@polkadot/util-crypto';
+import BN from 'bn.js';
 
 import { log } from './logger';
 
@@ -185,8 +186,13 @@ async function signAndSendTxs(
 			)}`
 		);
 
-	const maxExtrinsic =
-		api.consts.system.blockWeights.perClass.normal.maxExtrinsic.unwrap();
+	// TS thinks this is an `Option<u64>`, but as of now its just a `u64` on-chain.
+	const maxExtrinsicMaybeOpt =
+		api.consts.system.blockWeights.perClass.normal.maxExtrinsic;
+	const maxExtrinsic = maxExtrinsicMaybeOpt.isSome
+		? maxExtrinsicMaybeOpt.unwrap()
+		: maxExtrinsicMaybeOpt;
+
 	// Assume most of the time we want batches of size 8. Below we check if that is
 	// to big, and if it is we reduce the number of calls in each batch until it is
 	// below the max allowed weight.
@@ -213,7 +219,7 @@ async function signAndSendTxs(
 		while (toHeavy) {
 			const batch = api.tx.utility.batch(calls);
 			const { weight } = await batch.paymentInfo(signingKeys);
-			if (weight.muln(batch.length).gte(maxExtrinsic)) {
+			if (weight.muln(batch.length).gte(maxExtrinsic as BN)) {
 				// Remove a call from the batch since it will get rejected for exhausting resources.
 				const removeTx = calls.pop();
 				if (!removeTx) {
