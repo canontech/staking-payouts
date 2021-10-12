@@ -219,6 +219,7 @@ async function signAndSendTxs(
 		while (toHeavy) {
 			const batch = api.tx.utility.batch(calls);
 			const { weight } = await batch.paymentInfo(signingKeys);
+			// @ts-ignore
 			if (weight.muln(batch.length).gte(maxExtrinsic as BN)) {
 				// Remove a call from the batch since it will get rejected for exhausting resources.
 				const removeTx = calls.pop();
