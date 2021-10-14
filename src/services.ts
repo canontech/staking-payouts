@@ -9,7 +9,7 @@ import BN from 'bn.js';
 import { log } from './logger';
 
 const DEBUG = process.env.PAYOUTS_DEBUG;
-const MAX_CALLS = 9;
+const MAX_CALLS = 6;
 
 export interface ServiceArgs {
 	api: ApiPromise;
@@ -189,9 +189,13 @@ async function signAndSendTxs(
 	// TS thinks this is an `Option<u64>`, but as of now its just a `u64` on-chain.
 	const maxExtrinsicMaybeOpt =
 		api.consts.system.blockWeights.perClass.normal.maxExtrinsic;
-	const maxExtrinsic = maxExtrinsicMaybeOpt.isSome
-		? maxExtrinsicMaybeOpt.unwrap()
-		: maxExtrinsicMaybeOpt;
+	// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+	const maxExtrinsic: BN = maxExtrinsicMaybeOpt.isSome
+		? maxExtrinsicMaybeOpt.unwrap().toBn()
+		: // With older runtimes this is not an `Option`, so we squash compiler warnings.
+		  // @ts-ignore
+		  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+		  maxExtrinsicMaybeOpt.toBn();
 
 	// Assume most of the time we want batches of size 8. Below we check if that is
 	// to big, and if it is we reduce the number of calls in each batch until it is
@@ -208,6 +212,7 @@ async function signAndSendTxs(
 
 	// We will create multiple transactions if the batch is too big.
 	const txs = [];
+	let iters = 0;
 	while (byMaxCalls.length) {
 		const calls = byMaxCalls.shift();
 		if (!calls) {
@@ -219,8 +224,8 @@ async function signAndSendTxs(
 		while (toHeavy) {
 			const batch = api.tx.utility.batch(calls);
 			const { weight } = await batch.paymentInfo(signingKeys);
-			// @ts-ignore
-			if (weight.muln(batch.length).gte(maxExtrinsic as BN)) {
+
+			if (weight.gte(maxExtrinsic)) {
 				// Remove a call from the batch since it will get rejected for exhausting resources.
 				const removeTx = calls.pop();
 				if (!removeTx) {
@@ -242,6 +247,14 @@ async function signAndSendTxs(
 			} else {
 				toHeavy = false;
 			}
+
+			iters += 1;
+			DEBUG &&
+				log.debug(
+					`Current iteration of batch creation loop: ${iters}.` +
+						`Note: if this just keeps increasing file a bug report at` +
+						`https://github.com/canontech/staking-payouts/issues`
+				);
 		}
 
 		if (calls.length == 1) {
