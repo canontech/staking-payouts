@@ -324,7 +324,6 @@ async function signAndSendTxs(
 			)}`
 		);
 
-	// TS thinks this is an `Option<u64>`, but as of now its just a `u64` on-chain.
 	const maxExtrinsicMaybeOpt = (api.consts.system.blockWeights as BlockWeights)
 		.perClass.normal.maxExtrinsic;
 	// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -334,7 +333,7 @@ async function signAndSendTxs(
 		  (maxExtrinsicMaybeOpt as unknown as Option<u64>).unwrap().toBn()
 		: maxExtrinsicMaybeOpt.toBn();
 
-	// Assume most of the time we want batches of size 8. Below we check if that is
+	// Assume most of the time we want batches of size 6. Below we check if that is
 	// to big, and if it is we reduce the number of calls in each batch until it is
 	// below the max allowed weight.
 	// Note: 8 may need to be adjusted in the future - can look into adding a CLI flag.
