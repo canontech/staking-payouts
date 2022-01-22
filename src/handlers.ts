@@ -3,7 +3,7 @@ import fs from 'fs';
 
 import { isValidSeed } from './isValidSeed';
 import { log } from './logger';
-import { collectPayouts, listPendingPayouts } from './services';
+import { collectPayouts, listNominators, listPendingPayouts } from './services';
 
 const DEBUG = process.env.PAYOUTS_DEBUG;
 
@@ -73,6 +73,25 @@ export async function ls({
 		api,
 		stashes: stashesParsed,
 		eraDepth,
+	});
+}
+
+export async function lsNominators({
+	ws,
+	stashes,
+	stashesFile,
+}: Omit<HandlerArgs, 'suri' | 'eraDepth'>): Promise<void> {
+	const stashesParsed = parseStashes(stashesFile, stashes);
+	DEBUG && log.debug(`Parsed stash address: ${stashesParsed.join(', ')}`);
+
+	const provider = new WsProvider(ws);
+	const api = await ApiPromise.create({
+		provider,
+	});
+
+	await listNominators({
+		api,
+		stashes: stashesParsed,
 	});
 }
 

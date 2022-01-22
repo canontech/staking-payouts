@@ -6,6 +6,7 @@ import { Option, Vec } from '@polkadot/types/codec';
 import {
 	AccountId,
 	ActiveEraInfo,
+	Balance,
 	BlockWeights,
 	Exposure,
 	Nominations,
@@ -26,6 +27,15 @@ export interface ServiceArgs {
 	stashes: string[];
 	eraDepth: number;
 }
+
+interface NominatorInfo {
+	nominatorId: string;
+	voteWeight: Balance;
+	targets: string[];
+}
+
+type NominatorWeight = Omit<NominatorInfo, 'targets'>;
+type NominatorTargets = Omit<NominatorInfo, 'voteWeight'>;
 
 /**
  * Gather uncollected payouts for each validator, checking each era since there
@@ -170,6 +180,114 @@ export async function listPendingPayouts({
 		log.info(`Total of ${payouts.length} unclaimed payouts.`);
 
 	return payouts;
+}
+
+export async function listNominators({
+	api,
+	stashes,
+}: Omit<ServiceArgs, 'suri' | 'eraDepth'>): Promise<void> {
+	log.info('Querrying for nominators ...');
+	// Query for the nominators and make the data easy to use
+	const nominatorEntries = await api.query.staking.nominators.entries<
+		Option<Nominations>,
+		[AccountId]
+	>();
+	const nominatorWithTargets = nominatorEntries
+		.filter(([_, noms]) => {
+			return noms.isSome && noms.unwrap().targets?.length;
+		})
+		.map(([key, noms]) => {
+			return {
+				nominatorId: key.args[0].toHuman(),
+				targets: noms.unwrap().targets?.map((a) => a.toHuman()),
+			};
+		});
+
+	// Create a map of validator stash to arrays. The arrays will eventually be filled with nominators
+	// backing them.
+	const validatorMap = stashes.reduce((acc, cur) => {
+		acc[cur] = [];
+		return acc;
+	}, {} as Record<string, NominatorWeight[]>);
+
+	// Find the nominators who are backing the given stashes
+	const nominatorsBackingOurStashes = nominatorWithTargets.reduce(
+		(acc, { nominatorId, targets }) => {
+			for (const val of targets) {
+				if (validatorMap[val] !== undefined) {
+					acc.push({ nominatorId, targets });
+					return acc;
+				}
+			}
+
+			return acc;
+		},
+		[] as NominatorTargets[]
+	);
+
+	log.info('Querrying for the ledgers of nominators ...');
+	// Query for the ledgers of the nominators we care about
+	const withLedgers = await Promise.all(
+		nominatorsBackingOurStashes.map(({ nominatorId, targets }) =>
+			api.query.staking
+				.bonded<Option<AccountId>>(nominatorId)
+				.then((controller) => {
+					if (controller.isNone) {
+						log.warn(
+							`An error occured while unwrapping the controller for ${nominatorId}. ` +
+								'Please file an issue at: https://github.com/canontech/staking-payouts/issues'
+						);
+						process.exit(1);
+					}
+					return api.query.staking
+						.ledger<Option<StakingLedger>>(controller.unwrap().toHex())
+						.then((ledger) => {
+							if (ledger.isNone) {
+								log.warn(
+									`An error occured while unwrapping a ledger for ${nominatorId}. ` +
+										'Please file an issue at: https://github.com/canontech/staking-payouts/issues'
+								);
+								process.exit(1);
+							}
+							return {
+								voteWeight: ledger.unwrap().active.unwrap(),
+								nominatorId,
+								targets,
+							};
+						});
+				})
+		)
+	);
+
+	log.info('Finishing up some final computation ...');
+
+	// Add the nominators to the `validatorMap`
+	withLedgers.reduce((acc, { nominatorId, targets, voteWeight }) => {
+		for (const validator of targets) {
+			if (acc[validator]) {
+				acc[validator].push({ nominatorId, voteWeight });
+			}
+		}
+
+		return acc;
+	}, validatorMap);
+
+	// Sort the nominators in place and print them out
+	Object.entries(validatorMap).forEach(([validator, nominators]) => {
+		const nominatorsDisplay = nominators
+			.sort((a, b) => a.voteWeight.cmp(b.voteWeight))
+			.reverse()
+			.reduce((acc, { nominatorId, voteWeight }, index) => {
+				const start = `${index}) `.padStart(8, ' ');
+				const middle = `${nominatorId},`.padEnd(50, ' ');
+				return acc + start + middle + `${voteWeight.toHuman()}\n`;
+			}, '');
+
+		log.info(
+			`\nValidator ${validator} has the following nominations:\n` +
+				nominatorsDisplay
+		);
+	});
 }
 
 async function isValidatingInEra(
