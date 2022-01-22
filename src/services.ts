@@ -1,7 +1,16 @@
 /* eslint-disable @typescript-eslint/restrict-template-expressions */
 import { ApiPromise, Keyring } from '@polkadot/api';
 import { SubmittableExtrinsic } from '@polkadot/api/submittable/types';
-import { Vec } from '@polkadot/types/codec';
+import { u64 } from '@polkadot/types';
+import { Option, Vec } from '@polkadot/types/codec';
+import {
+	AccountId,
+	ActiveEraInfo,
+	BlockWeights,
+	Exposure,
+	Nominations,
+	StakingLedger,
+} from '@polkadot/types/interfaces';
 import { Codec, ISubmittableResult } from '@polkadot/types/types';
 import { cryptoWaitReady } from '@polkadot/util-crypto';
 import BN from 'bn.js';
@@ -65,7 +74,9 @@ export async function listPendingPayouts({
 }: Omit<ServiceArgs, 'suri'>): Promise<
 	SubmittableExtrinsic<'promise', ISubmittableResult>[] | null
 > {
-	const activeInfoOpt = await api.query.staking.activeEra();
+	const activeInfoOpt = await api.query.staking.activeEra<
+		Option<ActiveEraInfo>
+	>();
 	if (activeInfoOpt.isNone) {
 		log.warn('ActiveEra is None, pending payouts could not be fetched.');
 		return null;
@@ -75,7 +86,9 @@ export async function listPendingPayouts({
 	// Get all the validator address to get payouts for
 	const validatorStashes = [];
 	for (const stash of stashes) {
-		const maybeNominations = await api.query.staking.nominators(stash);
+		const maybeNominations = await api.query.staking.nominators<
+			Option<Nominations>
+		>(stash);
 		if (maybeNominations.isSome) {
 			const targets = maybeNominations.unwrap().targets.map((a) => a.toHuman());
 			DEBUG &&
@@ -94,7 +107,9 @@ export async function listPendingPayouts({
 	// Get pending payouts for the validator addresses
 	const payouts = [];
 	for (const stash of validatorStashes) {
-		const controllerOpt = await api.query.staking.bonded(stash);
+		const controllerOpt = await api.query.staking.bonded<Option<AccountId>>(
+			stash
+		);
 		if (controllerOpt.isNone) {
 			log.warn(`${stash} is not a valid stash address.`);
 			continue;
@@ -102,7 +117,9 @@ export async function listPendingPayouts({
 
 		const controller = controllerOpt.unwrap();
 		// Get payouts for a validator
-		const ledgerOpt = await api.query.staking.ledger(controller);
+		const ledgerOpt = await api.query.staking.ledger<Option<StakingLedger>>(
+			controller
+		);
 		if (ledgerOpt.isNone) {
 			log.warn(`Staking ledger for ${stash} was not found.`);
 			continue;
@@ -161,7 +178,10 @@ async function isValidatingInEra(
 	eraToCheck: number
 ): Promise<boolean> {
 	try {
-		const exposure = await api.query.staking.erasStakers(eraToCheck, stash);
+		const exposure = await api.query.staking.erasStakers<Exposure>(
+			eraToCheck,
+			stash
+		);
 		// If their total exposure is greater than 0 they are validating in the era.
 		return exposure.total.toBn().gtn(0);
 	} catch {
@@ -187,15 +207,14 @@ async function signAndSendTxs(
 		);
 
 	// TS thinks this is an `Option<u64>`, but as of now its just a `u64` on-chain.
-	const maxExtrinsicMaybeOpt =
-		api.consts.system.blockWeights.perClass.normal.maxExtrinsic;
+	const maxExtrinsicMaybeOpt = (api.consts.system.blockWeights as BlockWeights)
+		.perClass.normal.maxExtrinsic;
 	// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-	const maxExtrinsic: BN = maxExtrinsicMaybeOpt.isSome
-		? maxExtrinsicMaybeOpt.unwrap().toBn()
-		: // With older runtimes this is not an `Option`, so we squash compiler warnings.
-		  // @ts-ignore
-		  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-		  maxExtrinsicMaybeOpt.toBn();
+	const maxExtrinsic: BN = (maxExtrinsicMaybeOpt as unknown as Option<u64>)
+		.isSome
+		? // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+		  (maxExtrinsicMaybeOpt as unknown as Option<u64>).unwrap().toBn()
+		: maxExtrinsicMaybeOpt.toBn();
 
 	// Assume most of the time we want batches of size 8. Below we check if that is
 	// to big, and if it is we reduce the number of calls in each batch until it is
