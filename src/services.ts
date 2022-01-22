@@ -199,7 +199,7 @@ export async function listNominators({
 		.map(([key, noms]) => {
 			return {
 				nominatorId: key.args[0].toHuman(),
-				targets: noms.unwrap().targets?.map((a) => a.toHuman()),
+				targets: noms.unwrap().targets.map((a) => a.toHuman()),
 			};
 		});
 
