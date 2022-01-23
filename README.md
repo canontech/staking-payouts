@@ -105,7 +105,7 @@ payouts ls \
   -e 8
 ```
 
-### List nominators of the given stash addresses in order of funds
+### List nominators of the given stash addresses in order of bomded funds
 
 ```bash
 payouts lsNominators \
