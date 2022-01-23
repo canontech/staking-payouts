@@ -4,7 +4,7 @@
 
 import yargs from 'yargs';
 
-import { collect, ls } from './handlers';
+import { collect, ls, lsNominators } from './handlers';
 import { log } from './logger';
 
 async function main() {
@@ -63,6 +63,13 @@ async function main() {
 		)
 		// @ts-ignore
 		.command('ls', 'List pending payouts', {}, ls)
+		.command(
+			'lsNominators',
+			'List nominators backing the given stashes',
+			{},
+			// @ts-ignore-
+			lsNominators
+		)
 		.parse();
 }
 
@@ -71,7 +78,7 @@ main()
 		log.info('Exiting ...');
 		process.exit(0);
 	})
-	.catch(err => {
+	.catch((err) => {
 		log.error(err);
 		process.exit(1);
 	});

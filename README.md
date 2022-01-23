@@ -105,12 +105,21 @@ payouts ls \
   -e 8
 ```
 
+### List nominators of the given stash addresses in order of funds
+
+```bash
+payouts lsNominators \
+  -w wss://rpc.polkadot.io \
+  -s 111B8CxcmnWbuDLyGvgUmRezDCK1brRZmvUuQ6SrFdMyc3S \
+```
+
 ## Options
 
 ```log
 Commands:
-  index collect  Collect pending payouts                               [default]
-  index ls       List pending payouts
+  index.ts collect       Collect pending payouts                       [default]
+  index.ts ls            List pending payouts
+  index.ts lsNominators  List nominators backing the given stashes
 
 Options:
       --help         Show help                                         [boolean]
@@ -123,14 +132,14 @@ Options:
                      not using stashesFile.                              [array]
   -e, --eraDepth     How many eras prior to the last collected era to check for
                      uncollected payouts.                  [number] [default: 0]
-  -u, --suriFile     Path to .txt file containing private key seed.
-                                                             [string] [required]
+  -u, --suriFile                                             [string] [required]
 ```
 
 **NOTES:**
 
   - `collect` is the default command and as such can be omitted.
   - `--suriFile` is only require for the `collect` command.
+  - `lsNominators` only requires a stash address and api endpoint.
 
 ## Docker
 

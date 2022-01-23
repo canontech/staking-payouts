@@ -6,7 +6,7 @@
     "payouts": "build/index.js"
   },
   "repository": "https://github.com/emostov/staking-payouts.git",
-  "author": "emostov <32168567+emostov@users.noreply.github.com>",
+  "author": "emostov <z.mostov@gmail.com>",
   "bugs": {
     "url": "https://github.com/emostov/staking-payouts/issues"
   },
@@ -35,8 +35,12 @@
     "typescript": "^4.3.5"
   },
   "dependencies": {
-    "@polkadot/api": "6.3.1",
+    "@polkadot/api": "7.4.1",
     "winston": "^3.3.3",
     "yargs": "^17.0.0"
+  },
+  "resolutions": {
+    "ansi-regex": "^5.0.1",
+    "tmpl": "1.0.5"
   }
 }
