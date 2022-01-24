@@ -11,6 +11,7 @@ import {
 	Exposure,
 	Nominations,
 	StakingLedger,
+	ValidatorPrefs,
 } from '@polkadot/types/interfaces';
 import { Codec, ISubmittableResult } from '@polkadot/types/types';
 import { cryptoWaitReady } from '@polkadot/util-crypto';
@@ -288,6 +289,89 @@ export async function listNominators({
 				nominatorsDisplay
 		);
 	});
+}
+
+export async function commissionData(
+	api: ApiPromise,
+	mid: number
+): Promise<void> {
+	const tenMillion = new BN(10_000_000);
+	const midPer = new BN(mid).mul(tenMillion);
+
+	const validators = await api.query.staking.validators.entries<
+		ValidatorPrefs,
+		[AccountId]
+	>();
+
+	const activeInfoOpt = await api.query.staking.activeEra<
+		Option<ActiveEraInfo>
+	>();
+	if (activeInfoOpt.isNone) {
+		process.exit(1);
+	}
+	const currEra = activeInfoOpt.unwrap().index.toNumber() - 2;
+
+	const greaterThanOrBlockedActive = [];
+	const greaterThanOrBlockedWaiting = [];
+	const lessThanActive = [];
+	const lessThanWaiting = [];
+	let sum = new BN(0);
+
+	// For each validator determine if they are in the active set
+	const withStatus = await Promise.all(
+		validators.map(([valIdKey, prefs]) => {
+			const commission = prefs.commission.unwrap();
+			const valId = valIdKey.args[0].toString();
+
+			sum = sum.add(commission);
+			return isValidatingInEra(api, valId, currEra).then((isActive) => {
+				return { isActive, valId, prefs };
+			});
+		})
+	);
+
+	// Go through validators and determine if their commision is greter than or less than than the
+	// given commission (`mid`)
+	withStatus.forEach((cur) => {
+		const { prefs, isActive } = cur;
+		const commission = prefs.commission.unwrap();
+		sum = sum.add(commission);
+
+		if (prefs.blocked.isTrue || commission.gt(midPer)) {
+			if (isActive) {
+				greaterThanOrBlockedActive.push(commission);
+			} else {
+				greaterThanOrBlockedWaiting.push(commission);
+			}
+		} else {
+			if (isActive) {
+				lessThanActive.push(commission);
+			} else {
+				lessThanWaiting.push(commission);
+			}
+		}
+	});
+
+	const sortedCommision = validators
+		.map(([_, prefs]) => prefs.commission.unwrap())
+		.sort((a, b) => a.cmp(b));
+	const mean = sortedCommision[sortedCommision.length / 2];
+	const allAvg = sum.div(new BN(validators.length));
+
+	log.info(`average (floor): ${allAvg.div(tenMillion)}%`);
+	log.info(`mean (floor): ${mean.div(tenMillion)}%`);
+	log.info(
+		`active validators blocked or commission > ${mid}%: ${greaterThanOrBlockedActive.length}`
+	);
+	log.info(
+		`active validators with commission <= ${mid}%: ${lessThanActive.length}`
+	);
+	log.info(
+		`waiting validators blocked or commission > ${mid}%: ${greaterThanOrBlockedWaiting.length}`
+	);
+	log.info(
+		`waiting validators with commission <= ${mid}%: ${lessThanWaiting.length}`
+	);
 }
 
 async function isValidatingInEra(
