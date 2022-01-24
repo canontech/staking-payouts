@@ -114,7 +114,7 @@ export async function commission({
 	});
 
 	if (!(typeof percent === 'number')) {
-		console.log('typeof commision', typeof percent);
+		DEBUG && log.debug('typeof commision', typeof percent);
 		log.warn('Internal error proccessing CLI args');
 		process.exit(1);
 	}
