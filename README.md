@@ -115,7 +115,7 @@ payouts lsNominators \
 
 ### List count of validator's commission under and above the given value
 
-```
+```bash
 payouts commission \
         -w wss://rpc.polkadot.io \
         -p 0.9
@@ -142,7 +142,7 @@ Options:
                      not using stashesFile.                              [array]
   -e, --eraDepth     How many eras prior to the last collected era to check for
                      uncollected payouts.                  [number] [default: 0]
-  -u, --suriFile
+  -u, --suriFile                                             [string] [required]
 ```
 
 **NOTES:**
