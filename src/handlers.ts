@@ -3,7 +3,12 @@ import fs from 'fs';
 
 import { isValidSeed } from './isValidSeed';
 import { log } from './logger';
-import { collectPayouts, listNominators, listPendingPayouts } from './services';
+import {
+	collectPayouts,
+	commissionData,
+	listNominators,
+	listPendingPayouts,
+} from './services';
 
 const DEBUG = process.env.PAYOUTS_DEBUG;
 
@@ -13,6 +18,7 @@ interface HandlerArgs {
 	stashesFile?: string;
 	stashes?: (string | number)[];
 	eraDepth: number;
+	percent?: number;
 }
 
 export async function collect({
@@ -93,6 +99,27 @@ export async function lsNominators({
 		api,
 		stashes: stashesParsed,
 	});
+}
+
+export async function commission({
+	ws,
+	percent,
+}: Omit<
+	HandlerArgs,
+	'stashes' | 'stashesFile' | 'suri' | 'eraDepth'
+>): Promise<void> {
+	const provider = new WsProvider(ws);
+	const api = await ApiPromise.create({
+		provider,
+	});
+
+	if (!(typeof percent === 'number')) {
+		console.log('typeof commision', typeof percent);
+		log.warn('Internal error proccessing CLI args');
+		process.exit(1);
+	}
+
+	await commissionData(api, percent);
 }
 
 export function parseStashes(

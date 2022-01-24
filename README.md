@@ -113,6 +113,14 @@ payouts lsNominators \
   -s 111B8CxcmnWbuDLyGvgUmRezDCK1brRZmvUuQ6SrFdMyc3S \
 ```
 
+### List count of validator's commission under and above the given value
+
+```bash
+payouts commission \
+        -w wss://rpc.polkadot.io \
+        -p 0.9
+```
+
 ## Options
 
 ```log
@@ -120,6 +128,8 @@ Commands:
   index.ts collect       Collect pending payouts                       [default]
   index.ts ls            List pending payouts
   index.ts lsNominators  List nominators backing the given stashes
+  index.ts commission    List validators with commission under and above the
+                         given value
 
 Options:
       --help         Show help                                         [boolean]
