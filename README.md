@@ -113,6 +113,14 @@ payouts lsNominators \
   -s 111B8CxcmnWbuDLyGvgUmRezDCK1brRZmvUuQ6SrFdMyc3S \
 ```
 
+### List count of validator's commission under and above the given value
+
+```
+payouts commission \
+        -w wss://rpc.polkadot.io \
+        -p 0.9
+```
+
 ## Options
 
 ```log
@@ -120,6 +128,8 @@ Commands:
   index.ts collect       Collect pending payouts                       [default]
   index.ts ls            List pending payouts
   index.ts lsNominators  List nominators backing the given stashes
+  index.ts commission    List validators with commission under and above the
+                         given value
 
 Options:
       --help         Show help                                         [boolean]
@@ -132,7 +142,7 @@ Options:
                      not using stashesFile.                              [array]
   -e, --eraDepth     How many eras prior to the last collected era to check for
                      uncollected payouts.                  [number] [default: 0]
-  -u, --suriFile                                             [string] [required]
+  -u, --suriFile
 ```
 
 **NOTES:**

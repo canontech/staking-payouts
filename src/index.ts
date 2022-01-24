@@ -4,7 +4,7 @@
 
 import yargs from 'yargs';
 
-import { collect, commision, ls, lsNominators } from './handlers';
+import { collect, commission, ls, lsNominators } from './handlers';
 import { log } from './logger';
 
 async function main() {
@@ -71,20 +71,20 @@ async function main() {
 			lsNominators
 		)
 		.command(
-			'commision',
-			'List validators with commission under the given value',
+			'commission',
+			'List validators with commission under and above the given value',
 			// @ts-ignore
 			(yargs) => {
 				return yargs.options({
 					percent: {
 						alias: 'p',
-						description: 'Commision, expressed as a percent i.e "10" for 10%',
+						description: 'Commission, expressed as a percent i.e "10" for 10%',
 						number: true,
 						demandOption: true,
 					},
 				});
 			},
-			commision
+			commission
 		)
 		.parse();
 }

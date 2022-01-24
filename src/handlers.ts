@@ -101,7 +101,7 @@ export async function lsNominators({
 	});
 }
 
-export async function commision({
+export async function commission({
 	ws,
 	percent,
 }: Omit<
