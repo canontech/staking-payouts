@@ -415,7 +415,7 @@ async function signAndSendTxs(
 		.isSome
 		? // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
 		  (maxExtrinsicMaybeOpt as unknown as Option<u64>).unwrap().toBn()
-		: maxExtrinsicMaybeOpt.toBn();
+		: (maxExtrinsicMaybeOpt as unknown as u64).toBn();
 
 	// Assume most of the time we want batches of size 6. Below we check if that is
 	// to big, and if it is we reduce the number of calls in each batch until it is
