@@ -146,7 +146,8 @@ export async function listPendingPayouts({
 		}
 		// See if there are any gaps in eras we have not claimed but should
 		for (let e = lastEra - eraDepth; e < lastEra; e += 1) {
-			if (claimedRewards.includes(e)) {
+			// I have no idea why `includes` won't work anymore.
+			if (claimedRewards.indexOf(e) != -1) {
 				continue;
 			}
 
