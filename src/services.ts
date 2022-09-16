@@ -137,9 +137,12 @@ export async function listPendingPayouts({
 		}
 		const ledger = ledgerOpt.unwrap();
 
-		const { claimedRewards } = ledger;
+		const { claimedRewards: claimedRewardsEraType } = ledger;
+		const claimedRewards = claimedRewardsEraType
+			.toArray()
+			.map((ele) => ele.toNumber());
 
-		const lastEra = claimedRewards[claimedRewards.length - 1]?.toNumber();
+		const lastEra = claimedRewards[claimedRewards.length - 1];
 		if (!lastEra) {
 			// This shouldn't happen but here anyways.
 			continue;
