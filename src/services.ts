@@ -1,13 +1,11 @@
 /* eslint-disable @typescript-eslint/restrict-template-expressions */
 import { ApiPromise, Keyring } from '@polkadot/api';
 import { SubmittableExtrinsic } from '@polkadot/api/submittable/types';
-import { u64 } from '@polkadot/types';
 import { Option, Vec } from '@polkadot/types/codec';
 import {
 	AccountId,
 	ActiveEraInfo,
 	Balance,
-	BlockWeights,
 	Exposure,
 	Nominations,
 	StakingLedger,
@@ -20,7 +18,7 @@ import BN from 'bn.js';
 import { log } from './logger';
 
 const DEBUG = process.env.PAYOUTS_DEBUG;
-const MAX_CALLS = 6;
+const MAX_CALLS = 5;
 
 export interface ServiceArgs {
 	api: ApiPromise;
@@ -411,81 +409,17 @@ async function signAndSendTxs(
 			)}`
 		);
 
-	const maxExtrinsicMaybeOpt = (api.consts.system.blockWeights as BlockWeights)
-		.perClass.normal.maxExtrinsic;
-	// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-	const maxExtrinsic: BN = (maxExtrinsicMaybeOpt as unknown as Option<u64>)
-		.isSome
-		? // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-		  (maxExtrinsicMaybeOpt as unknown as Option<u64>).unwrap().toBn()
-		: (maxExtrinsicMaybeOpt as unknown as u64).toBn();
-
-	// Assume most of the time we want batches of size 6. Below we check if that is
-	// to big, and if it is we reduce the number of calls in each batch until it is
-	// below the max allowed weight.
-	// Note: 8 may need to be adjusted in the future - can look into adding a CLI flag.
-	const byMaxCalls = payouts.reduce((byMaxCalls, tx, idx) => {
-		if (idx % MAX_CALLS === 0) {
-			byMaxCalls.push([]);
-		}
-		byMaxCalls[byMaxCalls.length - 1].push(tx);
-
-		return byMaxCalls;
-	}, [] as SubmittableExtrinsic<'promise'>[][]);
-
-	// We will create multiple transactions if the batch is too big.
-	const txs = [];
-	let iters = 0;
-	while (byMaxCalls.length) {
-		const calls = byMaxCalls.shift();
-		if (!calls) {
-			// Shouldn't be possible, but this makes tsc happy
-			break;
-		}
-
-		let toHeavy = true;
-		while (toHeavy) {
-			const batch = api.tx.utility.batch(calls);
-			const { weight } = await batch.paymentInfo(signingKeys);
-
-			if (weight.gte(maxExtrinsic)) {
-				// Remove a call from the batch since it will get rejected for exhausting resources.
-				const removeTx = calls.pop();
-				if (!removeTx) {
-					// `removeTx` is undefined, which shouldn't happen and means we can't even
-					// fit one call into a batch.
-					toHeavy = false;
-				} else if (
-					!byMaxCalls[byMaxCalls.length - 1] ||
-					byMaxCalls[byMaxCalls.length - 1].length >= MAX_CALLS
-				) {
-					// There is either no subarray of txs left OR the subarray at the front is greater
-					// then the max size we want, so we create a new subarray.
-					byMaxCalls.push([removeTx]);
-				} else {
-					// Add the removed tx to the last subarray, which at this point only has
-					// other remvoed txs.
-					byMaxCalls[byMaxCalls.length - 1].push(removeTx);
-				}
-			} else {
-				toHeavy = false;
+	// Create batch calls of size `MAX_CALLS` or less
+	const txs = payouts
+		.reduce((byMaxCalls, tx, idx) => {
+			if (idx % MAX_CALLS === 0) {
+				byMaxCalls.push([]);
 			}
+			byMaxCalls[byMaxCalls.length - 1].push(tx);
 
-			iters += 1;
-			DEBUG &&
-				log.debug(
-					`Current iteration of batch creation loop: ${iters}.` +
-						`Note: if this just keeps increasing file a bug report at` +
-						`https://github.com/canontech/staking-payouts/issues`
-				);
-		}
-
-		if (calls.length == 1) {
-			txs.push(calls[0]);
-		} else if (calls.length > 1) {
-			txs.push(api.tx.utility.batch(calls));
-		}
-	}
+			return byMaxCalls;
+		}, [] as SubmittableExtrinsic<'promise'>[][])
+		.map((payoutTxs) => api.tx.utility.batch(payoutTxs));
 
 	DEBUG &&
 		log.debug(
