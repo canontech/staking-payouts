@@ -7,6 +7,7 @@ import {
 	ActiveEraInfo,
 	Balance,
 	Exposure,
+	EraRewardPoints,
 	Nominations,
 	StakingLedger,
 	ValidatorPrefs,
@@ -151,8 +152,8 @@ export async function listPendingPayouts({
 				continue;
 			}
 
-			// Check they nominated that era
-			if (await isValidatingInEra(api, stash, e)) {
+			// Check they received points that era
+			if (await hasEraPoints(api, stash, e)) {
 				const payoutStakes = api.tx.staking.payoutStakers(stash, e);
 				payouts.push(payoutStakes);
 			}
@@ -160,7 +161,7 @@ export async function listPendingPayouts({
 
 		// Check from the last collected era up until current
 		for (let e = lastEra + 1; e < currEra; e += 1) {
-			if (await isValidatingInEra(api, stash, e)) {
+			if (await hasEraPoints(api, stash, e)) {
 				// Get payouts for each era where payouts have not been claimed
 				const payoutStakes = api.tx.staking.payoutStakers(stash, e);
 				payouts.push(payoutStakes);
@@ -387,6 +388,24 @@ async function isValidatingInEra(
 		);
 		// If their total exposure is greater than 0 they are validating in the era.
 		return exposure.total.toBn().gtn(0);
+	} catch {
+		return false;
+	}
+}
+
+async function hasEraPoints(
+	api: ApiPromise,
+	stash: string,
+	eraToCheck: number
+): Promise<boolean> {
+	try {
+		const rewardpoints =
+			await api.query.staking.erasRewardPoints<EraRewardPoints>(eraToCheck);
+		let found = false;
+		rewardpoints.individual.forEach((_record, validator) => {
+			if (stash === validator.toString()) found = true;
+		});
+		return found;
 	} catch {
 		return false;
 	}
