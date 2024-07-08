@@ -2,14 +2,15 @@
 import { ApiPromise, Keyring } from '@polkadot/api';
 import { SubmittableExtrinsic } from '@polkadot/api/submittable/types';
 import { Option, Vec } from '@polkadot/types/codec';
+import { u32 } from '@polkadot/types/primitive';
 import {
 	AccountId,
 	ActiveEraInfo,
 	Balance,
 	Exposure,
 	EraRewardPoints,
-	Nominations,
 	StakingLedger,
+	Nominations,
 	ValidatorPrefs,
 } from '@polkadot/types/interfaces';
 import { Codec, ISubmittableResult } from '@polkadot/types/types';
@@ -77,6 +78,16 @@ export async function collectPayouts({
 	await signAndSendTxs(api, payouts, suri);
 }
 
+export async function payoutClaimedForAddressForEra(api: ApiPromise, stashAddress: string, eraIndex: number): Promise<boolean> {
+	const claimed = (await api.query.staking.claimedRewards<Vec<u32>>(eraIndex, stashAddress)).length > 0;
+	if (claimed) {
+		// payout already issued
+		return true;
+	}
+	const exposureForEra = await api.query.staking.erasStakersOverview<Option<any>>(eraIndex, stashAddress);
+	return exposureForEra.isNone;
+}
+
 export async function listPendingPayouts({
 	api,
 	stashes,
@@ -126,43 +137,14 @@ export async function listPendingPayouts({
 		}
 
 		const controller = controllerOpt.unwrap();
-		// Get payouts for a validator
-		const ledgerOpt = await api.query.staking.ledger<Option<StakingLedger>>(
-			controller
-		);
-		if (ledgerOpt.isNone) {
-			log.warn(`Staking ledger for ${stash} was not found.`);
-			continue;
-		}
-		const ledger = ledgerOpt.unwrap();
-
-		const { claimedRewards: claimedRewardsEraType } = ledger;
-		const claimedRewards = claimedRewardsEraType
-			.toArray()
-			.map((ele) => ele.toNumber());
-
-		const lastEra = claimedRewards[claimedRewards.length - 1];
-		if (!lastEra) {
-			// This shouldn't happen but here anyways.
-			continue;
-		}
-		// See if there are any gaps in eras we have not claimed but should
-		for (let e = lastEra - eraDepth; e < lastEra; e += 1) {
-			if (claimedRewards.includes(e)) {
+		// Check for unclaimed payouts from `current-eraDepth` to `current` era
+		for (let e = currEra - eraDepth; e <= currEra; e++) {
+			const payoutClaimed = await payoutClaimedForAddressForEra(api, controller.toString(), e);
+			if (payoutClaimed) {
 				continue;
 			}
-
-			// Check they received points that era
+			// Check if they received points that era
 			if (await hasEraPoints(api, stash, e)) {
-				const payoutStakes = api.tx.staking.payoutStakers(stash, e);
-				payouts.push(payoutStakes);
-			}
-		}
-
-		// Check from the last collected era up until current
-		for (let e = lastEra + 1; e < currEra; e += 1) {
-			if (await hasEraPoints(api, stash, e)) {
-				// Get payouts for each era where payouts have not been claimed
 				const payoutStakes = api.tx.staking.payoutStakers(stash, e);
 				payouts.push(payoutStakes);
 			}
