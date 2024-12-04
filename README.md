@@ -65,6 +65,7 @@ npm install -G @zekemostov/staking-payouts
 # Github
 git clone https://github.com/emostov/staking-payouts.git
 cd staking-payouts
+# Note depending on the version of Node being used, corepack might need to be enabled which will be prompted in the terminal.
 yarn install
 yarn run build
 ```
