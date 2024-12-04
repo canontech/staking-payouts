@@ -138,7 +138,8 @@ export async function listPendingPayouts({
 
 		const controller = controllerOpt.unwrap();
 		// Check for unclaimed payouts from `current-eraDepth` to `current` era
-		for (let e = currEra - eraDepth; e <= currEra; e++) {
+		// The current era is not claimable. Therefore we need to substract by 1.
+		for (let e = (currEra - 1) - eraDepth; e <= (currEra - 1); e++) {
 			const payoutClaimed = await payoutClaimedForAddressForEra(api, controller.toString(), e);
 			if (payoutClaimed) {
 				continue;
@@ -151,7 +152,7 @@ export async function listPendingPayouts({
 		}
 	}
 
-	payouts.length &&
+	if (payouts.length) {
 		log.info(
 			`The following unclaimed payouts where found: \n${payouts
 				.map(
@@ -163,6 +164,9 @@ export async function listPendingPayouts({
 				.join('\n')}`
 		) &&
 		log.info(`Total of ${payouts.length} unclaimed payouts.`);
+	} else {
+		log.info(`No payouts found.`)
+	}
 
 	return payouts;
 }
