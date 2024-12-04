@@ -42,5 +42,6 @@
   "resolutions": {
     "ansi-regex": "^5.0.1",
     "tmpl": "1.0.5"
-  }
+  },
+  "packageManager": "yarn@4.5.3"
 }
