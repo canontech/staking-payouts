@@ -139,7 +139,7 @@ export async function listPendingPayouts({
 		const controller = controllerOpt.unwrap();
 		// Check for unclaimed payouts from `current-eraDepth` to `current` era
 		// The current era is not claimable. Therefore we need to substract by 1.
-		for (let e = (currEra - 1) - eraDepth; e <= (currEra - 1); e++) {
+		for (let e = (currEra - 1) - eraDepth; e < (currEra - 1); e++) {
 			const payoutClaimed = await payoutClaimedForAddressForEra(api, controller.toString(), e);
 			if (payoutClaimed) {
 				continue;
